@@ -20,3 +20,7 @@ uv add mcp[cli] httpx
 # Create our server file
 new-item weather.py
 ```
+
+For testing locally, you can connect it to Claude or use mcp CLI:
+
+`uv run mcp dev server.py`
