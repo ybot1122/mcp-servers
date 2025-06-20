@@ -1,3 +1,4 @@
+import datetime
 import os.path
 from mcp.server.fastmcp import FastMCP # type: ignore
 from mcp.server import Server # type: ignore
@@ -10,12 +11,11 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build, Resource
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-
+CALENDAR_IDS = ["primary", "lb284rombp29sb39dhbcvcn82c@group.calendar.google.com"]
 
 @dataclass
 class AppContext:
     service: Resource
-    test: str = "test"
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -51,6 +51,106 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 
 mcp = FastMCP("google-calendar", lifespan=app_lifespan)
+
+@mcp.tool()
+async def get_my_day() -> str:
+    """Get today's events from primary calendar"""
+    ctx = mcp.get_context()
+    service = ctx.request_context.lifespan_context.service
+    now = datetime.datetime.utcnow().isoformat() + "Z"
+    primary_events, shared_events = [], []
+
+    try:
+      primary_events = (
+          service.events()
+          .list(
+              calendarId=CALENDAR_IDS[0],
+              timeMin=now,
+              timeMax=(datetime.datetime.utcnow() + datetime.timedelta(days=1)).isoformat() + "Z",
+              singleEvents=True,
+              orderBy="startTime",
+          )
+          .execute()
+      )
+      shared_events = (
+          service.events()
+          .list(
+              calendarId=CALENDAR_IDS[1],
+              timeMin=now,
+              timeMax=(datetime.datetime.utcnow() + datetime.timedelta(days=1)).isoformat() + "Z",
+              singleEvents=True,
+              orderBy="startTime",
+          )
+          .execute()
+      )
+    except Exception as e:
+        return f"Error fetching events: {str(e)}"
+
+    events = primary_events.get("items", []) + shared_events.get("items", [])
+
+    if not events:
+        return "No events found for today."
+
+    # Prints the start and name of today's events
+    result = ""
+    for event in events:
+        start = event["start"].get("dateTime", event["start"].get("date"))
+        result += f"{start} {event['summary']}\n"
+
+    return result
+
+@mcp.resource("calendar://calendars")
+async def get_calendars() -> str:
+    """Get list of calendars"""
+    ctx = mcp.get_context()
+    service = ctx.request_context.lifespan_context.service
+    calendars_result = (
+        service.calendarList()
+        .list()
+        .execute()
+    )
+    calendars = calendars_result.get("items", [])
+
+    if not calendars:
+        return "No calendars found."
+
+    result = ""
+    for calendar in calendars:
+        result += f"{calendar['summary']}: {calendar['id']}\n"
+
+    return result
+
+
+@mcp.resource("calendar://events")
+async def ten_events() -> str:
+    """Get next ten upcoming events from primary calendar"""
+    ctx = mcp.get_context()
+    service = ctx.request_context.lifespan_context.service
+    now = datetime.datetime.utcnow().isoformat() + "Z"
+    events_result = (
+        service.events() 
+        .list(
+            calendarId="primary",
+            timeMin=now,
+            maxResults=10,
+            singleEvents=True,
+            orderBy="startTime",
+        )
+        .execute()
+    )
+    events = events_result.get("items", [])
+
+    if not events:
+      return "No upcoming events found."
+
+    # Prints the start and name of the next 10 events
+    result = ""
+    for event in events:
+      start = event["start"].get("dateTime", event["start"].get("date"))
+      result += f"{start} {event['summary']}\n"
+
+    return result
+
 
 if __name__ == "__main__":
     # Initialize and run the server
