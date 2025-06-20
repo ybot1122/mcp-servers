@@ -1,6 +1,6 @@
 ### MCP Servers
 
-- **google-calendar**: retrieves events, helps with scheduling, and also can create events.
+- **google-calendar**: retrieves events, helps with scheduling, and create events.
 - **weather**: fetches weather information. This is the tutorial from [MCP documentation](https://modelcontextprotocol.io/quickstart/server)
 
 ### Create a new MCP Server

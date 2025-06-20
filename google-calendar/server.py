@@ -10,7 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build, Resource
 
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CALENDAR_IDS = ["primary", "lb284rombp29sb39dhbcvcn82c@group.calendar.google.com"]
 
 @dataclass
@@ -104,6 +104,49 @@ async def get_my_day(day: str) -> str:
         result += f"{start} {event['summary']}\n"
 
     return result
+
+@mcp.tool()
+async def create_event(event_title: str, start_time: str, end_time: str, description: str) -> str:
+    """Creates an event for a specific day on our shared calendar.
+    
+    Args:
+      event_title (str): Title of the event
+      start_time (str): Start time of the event in ISO format (YYYY-MM-DD for all day event or YYYY-MM-DDTHH:MM:SS for timed event)
+      end_time (str): End time of the event in ISO format (YYYY-MM-DD for all day event or YYYY-MM-DDTHH:MM:SS for timed event)
+      description (str): Description of the event
+    """
+    ctx = mcp.get_context()
+    service = ctx.request_context.lifespan_context.service
+
+    try:
+      # Determine if start_time and end_time are all-day (YYYY-MM-DD) or timed (YYYY-MM-DDTHH:MM:SS)
+      def parse_time_field(dt: str):
+          if len(dt) == 10:
+            return {"date": dt, "timeZone": "America/Los_Angeles"}
+          else:
+            return {"dateTime": dt, "timeZone": "America/Los_Angeles"}
+
+      start_field = parse_time_field(start_time)
+      end_field = parse_time_field(end_time)
+
+      created_event = (
+          service.events().insert(
+            calendarId=CALENDAR_IDS[1],
+            body={
+              "summary": event_title,
+              "description": description + "<br /><br />This event was created by the MCP Google Calendar tool.",
+              "start": start_field,
+              "end": end_field,
+            },
+          )
+        .execute()
+      )
+    except Exception as e:
+        return f"Error fetching events: {str(e)}"
+
+    return "successfully created event: " + created_event.get("htmlLink", "No link available")
+
+
 
 @mcp.resource("calendar://calendars")
 async def get_calendars() -> str:
