@@ -31,4 +31,4 @@ For google servers, also install Google libaries:
 
 ### Google Oauth Credentials
 
-Store them in root in `credentials.json`. Do not commit them to a publically visible repo.
+Store them in root in `credentials.json`. Do not commit them to a publically visible repo. Also remember to enable the APIs: https://console.cloud.google.com/apis/library
