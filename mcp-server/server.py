@@ -18,7 +18,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 # Create a named server
 mcp = FastMCP("My App")
 
-mcp = FastMCP("My App", dependencies=["pandas", "numpy"])
+mcp = FastMCP("My App", dependencies=["google"])
 
 @dataclass
 class AppContext:
