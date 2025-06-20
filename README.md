@@ -24,3 +24,11 @@ new-item weather.py
 For testing locally, you can connect it to Claude or use mcp CLI:
 
 `uv run mcp dev server.py`
+
+For google servers, also install Google libaries:
+
+`uv pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib`
+
+### Google Oauth Credentials
+
+Store them in root in `credentials.json`. Do not commit them to a publically visible repo.
