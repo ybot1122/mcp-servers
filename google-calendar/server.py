@@ -53,11 +53,17 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 mcp = FastMCP("google-calendar", lifespan=app_lifespan)
 
 @mcp.tool()
-async def get_my_day() -> str:
-    """Get today's events from primary calendar"""
+async def get_my_day(day: str) -> str:
+    """Get events for a specific day from primary and shared calendars.
+    
+    Args:
+      day (str): The day to get events for in YYYY-MM-DD format.
+    """
     ctx = mcp.get_context()
     service = ctx.request_context.lifespan_context.service
-    now = datetime.datetime.utcnow().isoformat() + "Z"
+    start_day = datetime.datetime.fromisoformat(day)
+    timeMin = start_day.isoformat() + "Z"
+    timeMax = (start_day + datetime.timedelta(days=1)).isoformat() + "Z"
     primary_events, shared_events = [], []
 
     try:
@@ -65,8 +71,8 @@ async def get_my_day() -> str:
           service.events()
           .list(
               calendarId=CALENDAR_IDS[0],
-              timeMin=now,
-              timeMax=(datetime.datetime.utcnow() + datetime.timedelta(days=1)).isoformat() + "Z",
+              timeMin=timeMin,
+              timeMax=timeMax,
               singleEvents=True,
               orderBy="startTime",
           )
@@ -76,8 +82,8 @@ async def get_my_day() -> str:
           service.events()
           .list(
               calendarId=CALENDAR_IDS[1],
-              timeMin=now,
-              timeMax=(datetime.datetime.utcnow() + datetime.timedelta(days=1)).isoformat() + "Z",
+              timeMin=timeMin,
+              timeMax=timeMax,
               singleEvents=True,
               orderBy="startTime",
           )
