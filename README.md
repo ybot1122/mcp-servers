@@ -1,6 +1,7 @@
 ### MCP Servers
 
 - **google-calendar**: retrieves events, helps with scheduling, and create events.
+- **gmail**: get unread emails, mark them as read. gets emails from 3 different accounts.
 - **weather**: fetches weather information. This is the tutorial from [MCP documentation](https://modelcontextprotocol.io/quickstart/server)
 
 ### Create a new MCP Server
