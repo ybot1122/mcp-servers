@@ -64,7 +64,7 @@ async def get_items(championName: str) -> str:
 
 @mcp.tool()
 async def lookup_summoner(championName: str) -> str:
-  """Looks up the summoner for the given champion in the current game and returns stats/info about their match history.
+  """Looks up the summoner for the given champion in the current game and returns stats about their match history.
   Args:
       championName (str): The name of the champion.
   """
@@ -72,6 +72,7 @@ async def lookup_summoner(championName: str) -> str:
   url = "https://127.0.0.1:2999/liveclientdata/allgamedata"
 
   try:
+    '''
     async with httpx.AsyncClient(verify=False) as client:
         resp = await client.get(url)
         data = resp.json()
@@ -84,21 +85,54 @@ async def lookup_summoner(championName: str) -> str:
         return f"{championName} not found in the game."
     gameName = currPlayer.get("riotIdGameName", '')
     tagLine = currPlayer.get("riotIdTagLine", '')
+    currPosition = currPlayer.get("position", 'UNKNOWN ROLE')
+    '''
 
     ctx = mcp.get_context()
     apiKey = ctx.request_context.lifespan_context.apiKey
+    gameName = 'Linknator'
+    tagLine = 'Might'
+
     get_puuid_url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}?api_key={apiKey}'
     async with httpx.AsyncClient() as client:
         puuid_resp = await client.get(get_puuid_url)
         puuid_data = puuid_resp.json()
         puuid = puuid_data['puuid']
 
-    match_history_url = f'https://americas.api.riotgames.com/riot/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=10&api_key={apiKey}'
+
+    match_history_url = f'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=10&api_key={apiKey}'
     async with httpx.AsyncClient() as client:
         match_history_resp = await client.get(match_history_url)
         match_history_data = match_history_resp.json()
 
-    return 'wip'
+    match_details = []
+    async with httpx.AsyncClient() as client:
+      for match_id in match_history_data:
+        match_url = f'https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={apiKey}'
+        match_resp = await client.get(match_url)
+        if match_resp.status_code == 200:
+          match_details.append(match_resp.json())
+        else:
+          match_details.append({"matchId": match_id, "error": f"Failed to fetch match details: {match_resp.status_code}"})
+
+    wins = 0
+    losses = 0
+    positions = {}
+    for match in match_details:
+      participants = match['info']['participants']
+      player = next((p for p in participants if p['puuid'] == puuid), None)
+      if player:
+        win = player['win']
+        if win:
+          wins += 1
+        else:
+          losses += 1
+        
+        pos = player.get("individualPosition", "UNKNOWN")
+        if pos not in positions:
+          positions[pos] = 0
+        positions[pos] += 1
+    return f"{gameName} ({tagLine}) has played {len(match_details)} matches in the last 10 games with {wins} wins and {losses} losses. They played as {'tbd'} in the current game. Their match history shows they have played in the following positions: {', '.join([f'{pos}: {count}' for pos, count in positions.items()])}."
   except httpx.RequestError as e:
     return f"An error occurred while making the request: {e}"
 
