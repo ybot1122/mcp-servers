@@ -63,35 +63,16 @@ async def get_items(championName: str) -> str:
 
 
 @mcp.tool()
-async def lookup_summoner(championName: str) -> str:
+async def lookup_summoner(riotId: str) -> str:
   """Looks up the summoner for the given champion in the current game and returns stats about their match history.
   Args:
-      championName (str): The name of the champion.
+      riotId (str): The Riot ID of the summoner (gameName#tag).
   """
 
-  url = "https://127.0.0.1:2999/liveclientdata/allgamedata"
-
   try:
-    '''
-    async with httpx.AsyncClient(verify=False) as client:
-        resp = await client.get(url)
-        data = resp.json()
-
-    if not data:
-        return "No data found"
-    
-    currPlayer = next((p for p in data.get("allPlayers", []) if p.get("championName", "") == championName), None)
-    if not currPlayer:
-        return f"{championName} not found in the game."
-    gameName = currPlayer.get("riotIdGameName", '')
-    tagLine = currPlayer.get("riotIdTagLine", '')
-    currPosition = currPlayer.get("position", 'UNKNOWN ROLE')
-    '''
-
+    gameName, tagLine = riotId.split("#", 1)
     ctx = mcp.get_context()
     apiKey = ctx.request_context.lifespan_context.apiKey
-    gameName = 'Linknator'
-    tagLine = 'Might'
 
     get_puuid_url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}?api_key={apiKey}'
     async with httpx.AsyncClient() as client:
@@ -128,11 +109,11 @@ async def lookup_summoner(championName: str) -> str:
         else:
           losses += 1
         
-        pos = player.get("individualPosition", "UNKNOWN")
+        pos = player["individualPosition"]
         if pos not in positions:
           positions[pos] = 0
         positions[pos] += 1
-    return f"{gameName} ({tagLine}) has played {len(match_details)} matches in the last 10 games with {wins} wins and {losses} losses. They played as {'tbd'} in the current game. Their match history shows they have played in the following positions: {', '.join([f'{pos}: {count}' for pos, count in positions.items()])}."
+    return f"{gameName} ({tagLine}) has played {len(match_details)} matches in the last 10 games with {wins} wins and {losses} losses. They played in the following positions: {', '.join([f'{pos}: {count}' for pos, count in positions.items()])}."
   except httpx.RequestError as e:
     return f"An error occurred while making the request: {e}"
 
@@ -165,10 +146,12 @@ async def get_current_game_state() -> str:
     teammates = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") == currPlayerInfo['team']]
     opponents = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") != currPlayerInfo['team']]
 
-    teammateInfo = f"My teammates are: {', '.join([p['championName'] for p in teammates])}."
-    opponentInfo = f"My opponents are: {', '.join([p['championName'] for p in opponents])}."
+    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + '(' + p['riotId'] + ')' for p in teammates])}. "
+    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + '(' + p['riotId'] + ')' for p in opponents])}."
 
-    return f"I am {riotId}, playing as {currPlayerInfo['championName']} in the {currPlayerInfo['position']} role with the keystone rune {currPlayerInfo['keystone']}. I am level {currPlayerInfo['level']} with {currPlayerInfo['kills']} kills and {currPlayerInfo['deaths']} deaths. My role opponent is {oppPlayerInfo['championName']} with key stone rune {oppPlayerInfo['keystone']} at level {oppPlayerInfo['level']} with {oppPlayerInfo['kills']} kills and {oppPlayerInfo['deaths']} deaths. {teammateInfo} {opponentInfo}."
+    gameTime = data["gameData"]["gameTime"]
+
+    return f"I am {riotId}, playing as {currPlayerInfo['championName']} in the {currPlayerInfo['position']} role with the keystone rune {currPlayerInfo['keystone']}. I am level {currPlayerInfo['level']} with {currPlayerInfo['kills']} kills and {currPlayerInfo['deaths']} deaths. My role opponent is {oppPlayerInfo['championName']} with key stone rune {oppPlayerInfo['keystone']} at level {oppPlayerInfo['level']} with {oppPlayerInfo['kills']} kills and {oppPlayerInfo['deaths']} deaths. {teammateInfo} {opponentInfo} It is {gameTime} seconds into the game."
   
   except httpx.RequestError as e:
     return f"An error occurred while making the request: {e}"
