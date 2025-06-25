@@ -1,7 +1,17 @@
 ### MCP Servers
 
 - **google-calendar**: retrieves events, helps with scheduling, and create events.
+  - "Find a 30 minute window for me today"
+  - "What's my schedule for this weekend"
+  - "Book a 1 hr session at 3:30pm tomorrow"
 - **gmail**: get unread emails, mark them as read. gets emails from 3 different accounts.
+  - "Check my inbox"
+  - "Mark all the emails as read"
+  - "Mark the Sports emails as read"
+- **league-of-legends:** return summary of active game, return items per champion, and return summary of a player's match history
+  - "What tips can you give me for my current League of Legends game?"
+  - "Which item should I build next?"
+  - "Is my jungler playing their main role?"
 - **weather**: fetches weather information. This is the tutorial from [MCP documentation](https://modelcontextprotocol.io/quickstart/server)
 
 ### Create a new MCP Server
