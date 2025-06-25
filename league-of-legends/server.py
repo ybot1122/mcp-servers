@@ -146,8 +146,8 @@ async def get_current_game_state() -> str:
     teammates = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") == currPlayerInfo['team']]
     opponents = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") != currPlayerInfo['team']]
 
-    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + '(' + p['riotId'] + ')' for p in teammates])}. "
-    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + '(' + p['riotId'] + ')' for p in opponents])}."
+    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D]' for p in teammates])}."
+    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D]' for p in opponents])}."
 
     gameTime = data["gameData"]["gameTime"]
 
