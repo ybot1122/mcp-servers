@@ -146,12 +146,12 @@ async def get_current_game_state() -> str:
     teammates = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") == currPlayerInfo['team']]
     opponents = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") != currPlayerInfo['team']]
 
-    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D]' for p in teammates])}."
-    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D]' for p in opponents])}."
+    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + ']'  for p in teammates])}."
+    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + ']' for p in opponents])}."
 
     gameTime = data["gameData"]["gameTime"]
 
-    return f"I am {riotId}, playing as {currPlayerInfo['championName']} in the {currPlayerInfo['position']} role with the keystone rune {currPlayerInfo['keystone']}. I am level {currPlayerInfo['level']} with {currPlayerInfo['kills']} kills and {currPlayerInfo['deaths']} deaths. My role opponent is {oppPlayerInfo['championName']} with key stone rune {oppPlayerInfo['keystone']} at level {oppPlayerInfo['level']} with {oppPlayerInfo['kills']} kills and {oppPlayerInfo['deaths']} deaths. {teammateInfo} {opponentInfo} It is {gameTime} seconds into the game."
+    return f"I am {riotId}, playing as {currPlayerInfo['championName']}. {teammateInfo} {opponentInfo} It is {gameTime} seconds into the game."
   
   except httpx.RequestError as e:
     return f"An error occurred while making the request: {e}"
