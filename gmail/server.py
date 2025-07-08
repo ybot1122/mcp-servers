@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build, Resource
-import base64
+from google.auth.exceptions import RefreshError
 
 SCOPES=["https://mail.google.com/"]
 ACCOUNTS = ["ybotuil", "ybot", "liutoby"]
@@ -32,7 +32,13 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
       if not curr_creds or not curr_creds.valid:
         if curr_creds and curr_creds.expired and curr_creds.refresh_token:
-            curr_creds.refresh(Request())
+            try:
+                curr_creds.refresh(Request())
+            except RefreshError:
+                # Token is invalid, need to re-authenticate
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    '../credentials.json', SCOPES)
+                curr_creds = flow.run_local_server(port=0)
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 "../credentials.json", SCOPES
