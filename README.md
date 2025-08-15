@@ -1,5 +1,8 @@
 ### MCP Servers
 
+- **oura**: gives health data from your Oura Ring
+  - "When was the last night I had a good quality sleep?"
+  - "Why was my sleep not so good last night?"
 - **google-calendar**: retrieves events, helps with scheduling, and create events.
   - "Find a 30 minute window for me today"
   - "What's my schedule for this weekend"
