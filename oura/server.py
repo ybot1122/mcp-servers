@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from collections.abc import AsyncIterator
 
+token_url = "https://api.ouraring.com/oauth/token"
+
 @dataclass
 class AppContext:
    clientId: str
@@ -20,8 +22,31 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
       CLIENT_ID = data.get("CLIENT_ID", "")
       CLIENT_SECRET = data.get("CLIENT_SECRET", "")
       ACCESS_TOKEN = data.get("ACCESS_TOKEN", "")
+      REFRESH_TOKEN = data.get("REFRESH_TOKEN", "")
+      new_at = ACCESS_TOKEN
+      new_rt = REFRESH_TOKEN
 
-    ctx = AppContext(clientId=CLIENT_ID, clientSecret=CLIENT_SECRET, accessToken=ACCESS_TOKEN)
+      # Refresh access token
+      async with httpx.AsyncClient() as client:
+        token_data = {
+            "grant_type": "refresh_token",
+            "refresh_token": REFRESH_TOKEN,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET
+        }
+        resp = await client.post(token_url, data=token_data)
+        resp.raise_for_status()
+        new_tokens = resp.json()
+        new_at = new_tokens["access_token"]
+        new_rt = new_tokens["refresh_token"]
+        
+        # Write the new access and refresh tokens back to token.json
+        data["ACCESS_TOKEN"] = new_at
+        data["REFRESH_TOKEN"] = new_rt
+        with open("token.json", "w") as f:
+            json.dump(data, f, indent=2)
+
+    ctx = AppContext(clientId=CLIENT_ID, clientSecret=CLIENT_SECRET, accessToken=new_at)
     yield ctx
 
 mcp = FastMCP("oura", lifespan=app_lifespan)
@@ -44,7 +69,6 @@ async def exchange_code_for_token(code: str) -> dict:
     client_id = ctx.request_context.lifespan_context.clientId
     client_secret = ctx.request_context.lifespan_context.clientSecret
 
-    token_url = "https://api.ouraring.com/oauth/token"
     data = {
         "grant_type": "authorization_code",
         "code": code,
