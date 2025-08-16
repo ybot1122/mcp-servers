@@ -64,6 +64,106 @@ async def exchange_code_for_token(code: str) -> dict:
         return {"error": str(e)}
 
 @mcp.tool()
+async def get_activity_documents(start_date: str, end_date: str) -> str:
+    """Returns activity document for the user from start date (inclusive) to end date (exclusive).
+       The document includes number of steps taken (steps) and total calories burned (total_calories).
+      Args:
+          start_date (str): The start day to retrieve sleep score. YYYY-MM-DD format.
+          end_date (str): The last day to retrieve sleep score. YYYY-MM-DD format.
+    """
+
+    base_url = "https://api.ouraring.com/v2/usercollection/daily_activity"
+    params = {
+        "start_date": start_date,
+        "end_date": end_date
+    }
+    result = []
+
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            ctx = mcp.get_context()
+            accessToken = ctx.request_context.lifespan_context.accessToken
+            next_token = None
+
+            while True:
+                req_params = params.copy()
+                if next_token:
+                    req_params["next_token"] = next_token
+                resp = await client.get(base_url, params=req_params, headers={"Authorization": f"Bearer {accessToken}"})
+                data = resp.json()
+                items = data.get("data", [])
+                for item in items:
+                    filtered = {
+                        "score": item.get("score"),
+                        "active_calories": item.get("active_calories"),
+                        "contributors": item.get("contributors"),
+                        "resting_time": item.get("resting_time"),
+                        "sedentary_time": item.get("sedentary_time"),
+                        "steps": item.get("steps"),
+                        "total_calories": item.get("total_calories"),
+                        "day": item.get("day")
+                    }
+                    result.append(filtered)
+                next_token = data.get("next_token")
+                if not next_token:
+                    break
+
+        if not result:
+            return "No data found"
+        
+        return json.dumps(result, indent=2)
+
+    except httpx.RequestError as e:
+        return f"An error occurred while making the request: {e}"
+
+@mcp.tool()
+async def get_todays_activity_document() -> str:
+    """Returns activity document for the user for today.
+       The document includes number of steps taken (steps) and total calories burned (total_calories).
+    """
+
+    base_url = "https://api.ouraring.com/v2/usercollection/daily_activity"
+    today = datetime.now().date()
+    start_date = today.isoformat()
+    end_date = (today + timedelta(days=1)).isoformat()
+    params = {
+        "start_date": start_date,
+        "end_date": end_date
+    }
+    result = []
+
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            ctx = mcp.get_context()
+            accessToken = ctx.request_context.lifespan_context.accessToken
+
+            req_params = params.copy()
+            resp = await client.get(base_url, params=req_params, headers={"Authorization": f"Bearer {accessToken}"})
+            data = resp.json()
+            items = data.get("data", [])
+            for item in items:
+                filtered = {
+                    "score": item.get("score"),
+                    "active_calories": item.get("active_calories"),
+                    "contributors": item.get("contributors"),
+                    "resting_time": item.get("resting_time"),
+                    "sedentary_time": item.get("sedentary_time"),
+                    "steps": item.get("steps"),
+                    "total_calories": item.get("total_calories"),
+                    "day": item.get("day")
+                }
+                result.append(filtered)
+
+        if not result:
+            return "No data found"
+        
+        return json.dumps(result, indent=2)
+
+    except httpx.RequestError as e:
+        return f"An error occurred while making the request: {e}"
+
+
+@mcp.tool()
 async def get_last_nights_sleep_document() -> str:
   """Returns the overall sleep score and sub-scores for the user's sleep last night.
   """
