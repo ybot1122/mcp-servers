@@ -1,6 +1,6 @@
 ### MCP Servers
 
-- **oura**: gives health data from your Oura Ring
+- **[oura](https://github.com/ybot1122/mcp-servers/tree/main/oura#readme)**: gives health data from your Oura Ring
   - "When was the last night I had a good quality sleep?"
   - "Why was my sleep not so good last night?"
 - **google-calendar**: retrieves events, helps with scheduling, and create events.
@@ -11,7 +11,7 @@
   - "Check my inbox"
   - "Mark all the emails as read"
   - "Mark the Sports emails as read"
-- **league-of-legends:** return summary of active game, return items per champion, and return summary of a player's match history
+- **[league-of-legends](https://github.com/ybot1122/mcp-servers/tree/main/league-of-legends#readme):** return summary of active game, return items per champion, and return summary of a player's match history
   - "What tips can you give me for my current League of Legends game?"
   - "Which item should I build next?"
   - "Is my jungler playing their main role?"
