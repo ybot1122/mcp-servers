@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from collections.abc import AsyncIterator
 
+token_url = "https://api.ouraring.com/oauth/token"
+
 @dataclass
 class AppContext:
    clientId: str
@@ -20,8 +22,31 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
       CLIENT_ID = data.get("CLIENT_ID", "")
       CLIENT_SECRET = data.get("CLIENT_SECRET", "")
       ACCESS_TOKEN = data.get("ACCESS_TOKEN", "")
+      REFRESH_TOKEN = data.get("REFRESH_TOKEN", "")
+      new_at = ACCESS_TOKEN
+      new_rt = REFRESH_TOKEN
 
-    ctx = AppContext(clientId=CLIENT_ID, clientSecret=CLIENT_SECRET, accessToken=ACCESS_TOKEN)
+      # Refresh access token
+      async with httpx.AsyncClient() as client:
+        token_data = {
+            "grant_type": "refresh_token",
+            "refresh_token": REFRESH_TOKEN,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET
+        }
+        resp = await client.post(token_url, data=token_data)
+        resp.raise_for_status()
+        new_tokens = resp.json()
+        new_at = new_tokens["access_token"]
+        new_rt = new_tokens["refresh_token"]
+        
+        # Write the new access and refresh tokens back to token.json
+        data["ACCESS_TOKEN"] = new_at
+        data["REFRESH_TOKEN"] = new_rt
+        with open("token.json", "w") as f:
+            json.dump(data, f, indent=2)
+
+    ctx = AppContext(clientId=CLIENT_ID, clientSecret=CLIENT_SECRET, accessToken=new_at)
     yield ctx
 
 mcp = FastMCP("oura", lifespan=app_lifespan)
@@ -44,7 +69,6 @@ async def exchange_code_for_token(code: str) -> dict:
     client_id = ctx.request_context.lifespan_context.clientId
     client_secret = ctx.request_context.lifespan_context.clientSecret
 
-    token_url = "https://api.ouraring.com/oauth/token"
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -63,16 +87,115 @@ async def exchange_code_for_token(code: str) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
+@mcp.tool()
+async def get_activity_documents(start_date: str, end_date: str) -> str:
+    """Returns activity document for the user from start date (inclusive) to end date (exclusive).
+       The document includes number of steps taken (steps) and total calories burned (total_calories).
+      Args:
+          start_date (str): The start day to retrieve sleep score. YYYY-MM-DD format.
+          end_date (str): The last day to retrieve sleep score. YYYY-MM-DD format.
+    """
+
+    base_url = "https://api.ouraring.com/v2/usercollection/daily_activity"
+    params = {
+        "start_date": start_date,
+        "end_date": end_date
+    }
+    result = []
+
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            ctx = mcp.get_context()
+            accessToken = ctx.request_context.lifespan_context.accessToken
+            next_token = None
+
+            while True:
+                req_params = params.copy()
+                if next_token:
+                    req_params["next_token"] = next_token
+                resp = await client.get(base_url, params=req_params, headers={"Authorization": f"Bearer {accessToken}"})
+                data = resp.json()
+                items = data.get("data", [])
+                for item in items:
+                    filtered = {
+                        "score": item.get("score"),
+                        "active_calories": item.get("active_calories"),
+                        "contributors": item.get("contributors"),
+                        "resting_time": item.get("resting_time"),
+                        "sedentary_time": item.get("sedentary_time"),
+                        "steps": item.get("steps"),
+                        "total_calories": item.get("total_calories"),
+                        "day": item.get("day")
+                    }
+                    result.append(filtered)
+                next_token = data.get("next_token")
+                if not next_token:
+                    break
+
+        if not result:
+            return "No data found"
+        
+        return json.dumps(result, indent=2)
+
+    except httpx.RequestError as e:
+        return f"An error occurred while making the request: {e}"
 
 @mcp.tool()
-async def get_sleep_document(date: str) -> str:
-  """Returns their overall sleep score, and scores for each subcategory that contributed to the overall score.
-  Args:
-      date (str): The day to retrieve sleep score for in YYYY-MM-DD format.
+async def get_todays_activity_document() -> str:
+    """Returns activity document for the user for today.
+       The document includes number of steps taken (steps) and total calories burned (total_calories).
+    """
+
+    base_url = "https://api.ouraring.com/v2/usercollection/daily_activity"
+    today = datetime.now().date()
+    start_date = today.isoformat()
+    end_date = (today + timedelta(days=1)).isoformat()
+    params = {
+        "start_date": start_date,
+        "end_date": end_date
+    }
+    result = []
+
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            ctx = mcp.get_context()
+            accessToken = ctx.request_context.lifespan_context.accessToken
+
+            req_params = params.copy()
+            resp = await client.get(base_url, params=req_params, headers={"Authorization": f"Bearer {accessToken}"})
+            data = resp.json()
+            items = data.get("data", [])
+            for item in items:
+                filtered = {
+                    "score": item.get("score"),
+                    "active_calories": item.get("active_calories"),
+                    "contributors": item.get("contributors"),
+                    "resting_time": item.get("resting_time"),
+                    "sedentary_time": item.get("sedentary_time"),
+                    "steps": item.get("steps"),
+                    "total_calories": item.get("total_calories"),
+                    "day": item.get("day")
+                }
+                result.append(filtered)
+
+        if not result:
+            return "No data found"
+        
+        return json.dumps(result, indent=2)
+
+    except httpx.RequestError as e:
+        return f"An error occurred while making the request: {e}"
+
+
+@mcp.tool()
+async def get_last_nights_sleep_document() -> str:
+  """Returns the overall sleep score and sub-scores for the user's sleep last night.
   """
 
-  start_date = date
-  end_date = (datetime.fromisoformat(date) + timedelta(days=1)).date().isoformat()
+  today = datetime.now().date()
+  prior_date = (today + timedelta(days=-1)).isoformat()
+  start_date = today.isoformat()
+  end_date = (today + timedelta(days=1)).isoformat()
   url = f"https://api.ouraring.com/v2/usercollection/daily_sleep?start_date={start_date}&end_date={end_date}"
 
   try:
@@ -96,11 +219,70 @@ async def get_sleep_document(date: str) -> str:
     timing = contributors.get("timing")
     total_sleep = contributors.get("total_sleep")
 
-    result = f"Overall Sleep Score: {overall}\nDeep Sleep: {deep_sleep}\nEfficiency: {efficiency}\nLatency: {latency}\nREM Sleep: {rem_sleep}\nRestfulness: {restfulness}\nTiming: {timing}\nTotal Sleep: {total_sleep}"
+    result = f"Sleep scores for last night (from {prior_date} to {today}). Overall Sleep Score: {overall}\nDeep Sleep: {deep_sleep}\nEfficiency: {efficiency}\nLatency: {latency}\nREM Sleep: {rem_sleep}\nRestfulness: {restfulness}\nTiming: {timing}\nTotal Sleep: {total_sleep}"
     return result
 
   except httpx.RequestError as e:
     return f"An error occurred while making the request: {e}"
+
+
+@mcp.tool()
+async def get_sleep_documents(start_date: str, end_date: str) -> str:
+    """Returns user's overall sleep score, and sub-scores for each day between start_date (inclusive) and end_date (exclusive).
+    Args:
+        start_date (str): The start day to retrieve sleep score. YYYY-MM-DD format.
+        end_date (str): The last day to retrieve sleep score. YYYY-MM-DD format.
+    """
+
+    base_url = f"https://api.ouraring.com/v2/usercollection/daily_sleep?start_date={start_date}&end_date={end_date}"
+    result = ""
+    next_token = None
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            ctx = mcp.get_context()
+            accessToken = ctx.request_context.lifespan_context.accessToken
+            url = base_url
+            while True:
+                # Add next_token to the URL if present
+                if next_token:
+                    url_with_token = f"{url}&next_token={next_token}"
+                else:
+                    url_with_token = url
+                resp = await client.get(url_with_token, headers={"Authorization": f"Bearer {accessToken}"})
+                data = resp.json()
+                if not data or "data" not in data or not data["data"]:
+                    if not result:
+                        return "No data found"
+                    break
+                days = data.get("data", [])
+                for day in days:
+                    date_str = day.get("day")
+                    overall = day.get("score")
+                    contributors = day.get("contributors", {})
+                    deep_sleep = contributors.get("deep_sleep")
+                    efficiency = contributors.get("efficiency")
+                    latency = contributors.get("latency")
+                    rem_sleep = contributors.get("rem_sleep")
+                    restfulness = contributors.get("restfulness")
+                    timing = contributors.get("timing")
+                    total_sleep = contributors.get("total_sleep")
+                    result += (
+                        f"Date: {date_str}\n"
+                        f"  Overall Sleep Score: {overall}\n"
+                        f"  Deep Sleep: {deep_sleep}\n"
+                        f"  Efficiency: {efficiency}\n"
+                        f"  Latency: {latency}\n"
+                        f"  REM Sleep: {rem_sleep}\n"
+                        f"  Restfulness: {restfulness}\n"
+                        f"  Timing: {timing}\n"
+                        f"  Total Sleep: {total_sleep}\n\n"
+                    )
+                next_token = data.get("next_token")
+                if not next_token:
+                    break
+        return result
+    except httpx.RequestError as e:
+        return f"An error occurred while making the request: {e}"
 
 if __name__ == "__main__":
     # Initialize and run the server
