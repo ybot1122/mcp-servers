@@ -3,7 +3,7 @@
 - **[oura](https://github.com/ybot1122/mcp-servers/tree/main/oura#readme)**: gives health data from your Oura Ring
   - "When was the last night I had a good quality sleep?"
   - "Why was my sleep not so good last night?"
-- **google-calendar**: retrieves events, helps with scheduling, and create events.
+- **[google-calendar](https://github.com/ybot1122/mcp-servers/blob/main/google-calendar/README.md)**: retrieves events, helps with scheduling, and create events.
   - "Find a 30 minute window for me today"
   - "What's my schedule for this weekend"
   - "Book a 1 hr session at 3:30pm tomorrow"
