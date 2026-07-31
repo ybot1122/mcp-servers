@@ -49,74 +49,8 @@
     <script src="buildPlayerCard.js"></script>
     <script src="askGameAdvice.js"></script>
     <script src="gameEndAndStart.js"></script>
+    <script src="updateGame.js"></script>
     <script>
-        const stateMetaEl = document.getElementById('stateMeta');
-        const activePlayerInfoEl = document.getElementById('activePlayerInfo');
-        const teamAEl = document.getElementById('teamA');
-        const teamBEl = document.getElementById('teamB');
-
-        async function gameHype(data) {
-            const time = data.gameData.gameTime
-            const message = data.prompt;
-            if (time - window.leagueAssist.lastHype > 150) {
-                window.leagueAssist.lastHype = time;
-                const prompt = await askGameAdvice(data.prompt);
-                await playTextToSpeech(prompt, '', true);
-            }
-        }
-
-        function updateGameState(data) {
-            const gameTime = data.gameData?.gameTime ?? null;
-
-            // do loading screen intro once
-            if (gameTime < 1 && !window.leagueAssist.loadingScreenOverviewDone) {
-                window.leagueAssist.loadingScreenOverviewDone = true;
-                askGameAdvice(data.prompt).then((prompt) => playTextToSpeech(prompt, '', true))
-            }
-
-            gameHype(data);
-
-            stateMetaEl.textContent = gameTime !== null ? `Game Time: ${Math.floor(gameTime)}s` : 'Game connected, waiting for data...';
-            const activePlayer = data.activePlayer ?? {};
-
-            const players = (data.allPlayers ?? []).map(player => ({
-                championName: player.championName,
-                summonerName: player.riotId || player.summonerName,
-                kills: player.scores?.kills ?? 0,
-                deaths: player.scores?.deaths ?? 0,
-                assists: player.scores?.assists ?? 0,
-                position: player.position || 'Unknown',
-                team: player.team,
-                items: (player.items ?? []).map(i => i.displayName).filter(Boolean).join(', '),
-                isSelf: player.riotId === activePlayer.riotId || player.summonerName === window.leagueAssist.activeSummonerName,
-            }));
-            const activeTeam = players.find(p => p.summonerName === window.leagueAssist.activeSummonerName)?.team;
-            activePlayerInfoEl.textContent = `${window.leagueAssist.activeSummonerName} ()`;
-
-            teamAEl.innerHTML = '';
-            teamBEl.innerHTML = '';
-
-            players.forEach(player => {
-                const card = buildPlayerCard(player);
-                if (player.isSelf) {
-                    card.classList.add('self');
-                }
-                if (player.team === activeTeam) {
-                    teamAEl.appendChild(card);
-                } else {
-                    teamBEl.appendChild(card);
-                }
-            });
-
-            // player reminders
-            if (activePlayer.currentGold >= 1300 && !window.leagueAssist.spendGoldReminder) {
-                window.leagueAssist.spendGoldReminder = true;
-                playTextToSpeech("You have enough gold to buy an item. Consider recalling to base and purchasing your items.");
-            } else if (activePlayer.currentGold < 1300 && window.leagueAssist.spendGoldReminder) {
-                window.leagueAssist.spendGoldReminder = false;
-            }
-        }
-
         async function checkGameStateDiff(data) {
             const diff = data.diff;
             let itemsUpdateMessage = '';
@@ -156,14 +90,14 @@
                     onGameStart(data);
                 }
 
-                updateGameState(data);
-                checkGameStateDiff(data);
+                await updateGame(data);
                 failCount = 0;
             } catch (error) {
                 failCount++;
                 if (failCount > 2 && window.leagueAssist.activeSummonerName) {
                     await onGameEnded();
                 }
+                console.error(error);
             }
             setTimeout(fetchGameState, 5000);
         }

@@ -12,7 +12,7 @@ window.leagueAssist = {...gameInitState}
 async function onGameEnded() {
     // fetch the last match of the summoner from API
     try {
-        const response = await fetch(`http://127.0.0.1:5000/lookup-summoner?summonerName=${encodeURIComponent(activeSummonerName)}`);
+        const response = await fetch(`http://127.0.0.1:5000/lookup-summoner?summonerName=${encodeURIComponent(window.leagueAssist.activeSummonerName)}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -26,7 +26,7 @@ async function onGameEnded() {
         await playTextToSpeech(message);
         document.getElementById("game-summary").textContent = message;
     } catch (error) {
-        stateMetaEl.textContent = `Unable to load game data: ${error.message}`;
+        console.error(error)
     }
 
     // reset local game state
