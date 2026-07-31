@@ -78,10 +78,13 @@ def query_llm():
     print("Handling Prompt: " + user_query)
 
     champion_context = ''
+
+    '''commenting this out as it too slow, but it helps add lore to the text
     for champ in champions_list:
         formatted_name = champ.capitalize()
         if formatted_name in CHAMPION_DATA:
             champion_context += " " + formatted_name + ": " + CHAMPION_DATA[formatted_name]['blurb'] + "."
+    '''
 
     prompt_with_context = champion_context + ". " + user_query
 

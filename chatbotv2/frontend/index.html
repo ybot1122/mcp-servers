@@ -48,6 +48,7 @@
     <script src="playTextToSpeech.js"></script>
     <script src="buildPlayerCard.js"></script>
     <script src="askGameAdvice.js"></script>
+    <script src="gameEndAndStart.js"></script>
     <script>
         let lastHype = 30;
         let activeSummonerName = "WhipMyHair#2256"
@@ -57,50 +58,6 @@
         const activePlayerInfoEl = document.getElementById('activePlayerInfo');
         const teamAEl = document.getElementById('teamA');
         const teamBEl = document.getElementById('teamB');
-        const gameAudioEl = document.getElementById('gameAudio');
-
-        const ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-        const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-        const SCALES = ["", "thousand", "million", "billion"];
-
-        function numberToWords(num) {
-            if (num === 0) return "zero";
-            
-            function convertLessThanOneThousand(n) {
-                let str = "";
-
-                if (n >= 100) {
-                    str += ONES[Math.floor(n / 100)] + " hundred ";
-                    n %= 100;
-                }
-
-                if (n >= 200 || n >= 20) {
-                    str += TENS[Math.floor(n / 10)] + " ";
-                    n %= 10;
-                }
-
-                if (n > 0) {
-                    str += ONES[n] + " ";
-                }
-
-                return str.trim();
-            }
-
-            let wordResult = "";
-            let scaleIndex = 0;
-
-            while (num > 0) {
-                let chunk = num % 1000;
-                if (chunk !== 0) {
-                    let chunkWords = convertLessThanOneThousand(chunk);
-                    wordResult = chunkWords + (SCALES[scaleIndex] ? " " + SCALES[scaleIndex] : "") + " " + wordResult;
-                }
-                num = Math.floor(num / 1000);
-                scaleIndex++;
-            }
-
-            return wordResult.trim();
-        }
 
         async function gameHype(data) {
             const time = data.gameData.gameTime
@@ -167,31 +124,6 @@
             }
         }
 
-        async function loadGameSummary() {
-            try {
-                const response = await fetch(`http://127.0.0.1:5000/lookup-summoner?summonerName=${encodeURIComponent(activeSummonerName)}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                const data = await response.json();
-                const puuid = data.puuid;
-                const lastMatch = data.matchDetails[0];
-                const selfParticipant = lastMatch.info.participants.find((p) => p.puuid === puuid);
-                const message = `In your last match, you played as ${selfParticipant.championName} with ${numberToWords(parseInt(selfParticipant.kills))} kills, ${numberToWords(parseInt(selfParticipant.deaths))} deaths, and ${numberToWords(parseInt(selfParticipant.assists))} assists. Your team ${selfParticipant.win ? 'won' : 'lost'} the game.`;
-                await playTextToSpeech(message);
-                document.getElementById("game-summary").textContent = message;
-            } catch (error) {
-                stateMetaEl.textContent = `Unable to load game data: ${error.message}`;
-            } finally {
-                // reset local game state
-                activeSummonerName = null;
-                lastHype = 30;
-                loadingScreenOverviewDone = false;
-                teamAEl.innerHTML = '';
-                teamBEl.innerHTML = '';
-            }
-        }
-
         async function checkGameStateDiff(data) {
             const diff = data.diff;
             let itemsUpdateMessage = '';
@@ -206,10 +138,8 @@
             let eventsUpdateMessage = '';
             data.new_events.forEach((ev) => {
                 if (activeSummonerName.startsWith(ev.KillerName)) {
-                    championsList.add(ev.VictimName)
                     eventsUpdateMessage += `Nice job! You killed ${ev.VictimName}`;
                 } else if (activeSummonerName.startsWith(ev.VictimName)) {
-                    championsList.add(ev.KillerName)
                     eventsUpdateMessage += `Ouch! ${ev.KillerName} has slain you.`;
                 }
             });
@@ -240,7 +170,7 @@
                 failCount++;
                 // await playTextToSpeech(`Error fetching game state attempt ${failCount}`);
                 if (failCount > 2 && activeSummonerName) {
-                    await loadGameSummary();
+                    await onGameEnded();
                 }
             }
             setTimeout(fetchGameState, 5000);
