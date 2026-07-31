@@ -64,7 +64,7 @@ def format_game_prompt_dynamic(data):
     enemy_team_str = ", ".join(enemy_team_champs)
     my_team_str = ", ".join(my_team_champs)
 
-    game_time = str(data.get("gameData").get("gameTime")) + " seconds"
+    game_time = str(int(data.get("gameData").get("gameTime"))) + " seconds"
 
     # Return the exact requested string structure
     return f"this is a summary of my current league of legends game: On the enemy team: {enemy_team_str}. On my team: {my_team_str}. I am playing {my_champion}. Current game time is {game_time}. Any advice for what to focus on now?"

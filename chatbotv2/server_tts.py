@@ -1,6 +1,6 @@
 import io
 import random
-from flask import Flask, request, Response, stream_with_context
+from flask import Flask, request, Response, stream_with_context, jsonify, send_file
 from pykokoro import GenerationConfig, KokoroPipeline, PipelineConfig
 import soundfile as sf
 import numpy as np
@@ -63,6 +63,24 @@ def tts():
         stream_with_context(generate_audio_stream()), 
         mimetype="audio/pcm"  # Updated mime-type layout
     )
+
+@app.route('/tts-wav', methods=['GET'])
+def ttswav():
+    text_value = request.args.get('text', '')
+    if not text_value:
+        return "Missing 'text' query parameter", 400
+    selected_voice = random.choice(ALL_VOICES)
+    try:
+        result = pipeline.run(text_value)
+        sf.write("output.wav", result.audio, result.sample_rate)
+        return Response('done')
+    except Exception as e:
+        print(f"Error during generation: {str(e)}")
+        return f"Audio generation failed: {str(e)}", 500
+
+@app.route('/get-audio', methods=['GET'])
+def get_audio():
+    return send_file('welcome.wav', mimetype='audio/wav')
 
 if __name__ == '__main__':
     app.run(port=5001, debug=False)

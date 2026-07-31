@@ -48,6 +48,8 @@ async function periodicGameAdvice(data) {
         const prompt = await askGameAdvice(data.prompt);
         return prompt;
     }
+
+    return '';
 }
 
 // One-time advice to give during loading screen
@@ -55,6 +57,15 @@ async function doLoadingScreenOverview(data) {
     if (data.gameData.gameTime < 1 && !window.leagueAssist.loadingScreenOverviewDone) {
         window.leagueAssist.loadingScreenOverviewDone = true;
         // TODO: modify prompt to focus more on lane matchup
+        const {championName: myChamp, position: myRole, team: myTeam} = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName);
+
+        if (myRole === "NONE") {
+
+        }
+
+        const {championName: myOpp} = data.allPlayers.find((p) => p.position === myRole && p.team !== myTeam)
+
+
         const advice = await askGameAdvice(data.prompt)
         return advice;
     }

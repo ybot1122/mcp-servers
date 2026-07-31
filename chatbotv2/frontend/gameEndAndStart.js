@@ -3,7 +3,6 @@ const gameInitState = {
     activeSummonerName: null,
     lastHype: 30,
     loadingScreenOverviewDone: false,
-    spendGoldReminder: false,
     activePlayer: null
 }
 

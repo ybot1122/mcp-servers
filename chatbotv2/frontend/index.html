@@ -37,7 +37,7 @@
             </div>
 
             <div id="gameAudio">
-                <button onclick="playTextToSpeech('Welcome to League Assist! I will provide you with live updates on your game, including champion information, KDA, and item purchases. Let\'s get started!')">
+                <button id="welcome_play">
                     Play Welcome Message
                 </button>
             </div>
@@ -45,6 +45,7 @@
 
     </main>
 
+    <script src="welcomeButton.js"></script>
     <script src="playTextToSpeech.js"></script>
     <script src="buildPlayerCard.js"></script>
     <script src="askGameAdvice.js"></script>
@@ -52,32 +53,6 @@
     <script src="updateGame.js"></script>
     <script src="llmPrompt.js"></script>
     <script>
-        async function checkGameStateDiff(data) {
-            const diff = data.diff;
-            let itemsUpdateMessage = '';
-            let championsList = new Set();
-            Object.keys(diff).forEach(key => {
-                if (diff[key].length > 0) {
-                    itemsUpdateMessage += `${key} has purchased ${diff[key].join(', ')}.`;
-                    championsList.add(key);
-                }
-            });
-
-            let eventsUpdateMessage = '';
-            data.new_events.forEach((ev) => {
-            });
-
-            let pts = null;
-
-            if (!itemsUpdateMessage && !eventsUpdateMessage) {
-                return;
-            }
-
-            const combinedMessage = itemsUpdateMessage + ". " + eventsUpdateMessage;
-            
-            await playTextToSpeech(combinedMessage, "Make this sentence more interesting. Keep it brief. Output the single sentence only.", false, championsList);
-        }
-
         let failCount = 0;
         async function fetchGameState() {
             try {
@@ -88,11 +63,11 @@
                 const data = await response.json();
 
                 if (!window.leagueAssist.activeSummonerName) {
+                    failCount = 0;
                     onGameStart(data);
                 }
 
                 await updateGame(data);
-                failCount = 0;
             } catch (error) {
                 failCount++;
                 if (failCount > 2 && window.leagueAssist.activeSummonerName) {
