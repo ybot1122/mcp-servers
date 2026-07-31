@@ -2,30 +2,30 @@ async function updateGame(data) {
 
     console.log(data);
 
-    let tts_prompt = '';
-    const tts_prompts = await Promise.all([
+    const tts_prompts = Promise.all([
         doLoadingScreenOverview(data),
         updatePlayerCards(data),
         periodicGameAdvice(data),
         itemPurchases(data),
+        deathAnalysis(data),
     ])
 
-    const prompt = tts_prompts.join(' ');
 
-    if (prompt.trim().length < 2) return;
+    tts_prompts.then((texts) => {
+        const prompt = texts.join(' ');
 
-    await playTextToSpeech(tts_prompts.join(' '))
+        if (prompt.trim().length < 2) return;
+        playTextToSpeech(prompt)
+    });
 }
 
 // Announce items that have been purchased
 async function itemPurchases(data) {
     const diff = data.diff;
     let itemsUpdateMessage = '';
-    let championsList = new Set();
     Object.keys(diff).forEach(key => {
         if (diff[key].length > 0) {
-            itemsUpdateMessage += `${key} has purchased ${diff[key].join(', ')}. `;
-            championsList.add(key);
+            itemsUpdateMessage += `${key} bought ${diff[key].join(', ')}. `;
         }
     });
 
@@ -33,17 +33,14 @@ async function itemPurchases(data) {
         return '';
     }
 
-    const instructions = 'This is for a League of Legends game. Summarize the items purchased. Output a single sentence only.'
-    const stylized = await llmPrompt(instructions, itemsUpdateMessage, championsList)
-
-    return stylized
+    return itemsUpdateMessage
 }
 
-// Every 150 seconds, feed AI game overview and ask for advice
+// Every 300 seconds, feed AI game overview and ask for advice
 async function periodicGameAdvice(data) {
     const time = data.gameData.gameTime
     const message = data.prompt;
-    if (time - window.leagueAssist.lastHype > 150) {
+    if (time - window.leagueAssist.lastHype > 300) {
         window.leagueAssist.lastHype = time;
         const prompt = await askGameAdvice(data.prompt);
         return prompt;
@@ -52,24 +49,81 @@ async function periodicGameAdvice(data) {
     return '';
 }
 
+    // Whenever the active player dies, give some commentary based on game state
+    async function deathAnalysis(data) {
+        const deathEvent = data.new_events.find((ev) => ev.EventName === "ChampionKill" && ev.VictimName === data.activePlayer.riotIdGameName);
+
+        if (deathEvent) {
+            const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
+            const killer = data.allPlayers.find((p) => p.summonerName === deathEvent.KillerName);
+
+            // Fallback check in case the killer is a minion, monster, or turret
+            if (!killer) {
+                return "You were executed by a non-champion source!";
+            }
+
+            const playerChampion = player.championName;
+            const killerChampion = killer.championName;
+            const playerRole = player.position;
+            const killerRole = killer.position; 
+            
+            const {deaths, kills, assists} = player.scores;
+            const {deaths: killer_deaths, kills: killer_kills, assists: killer_assists} = killer.scores;
+
+            // Calculate current performance metrics
+            const kda = deaths === 0 ? (kills + assists) : (kills + assists) / deaths;
+            let baseText = "";
+            let roleText = "";
+
+            // 1. TODO: Performance-based text generation
+            if (deaths >= 7) {
+                baseText = `Oof, that is ${deaths} deaths now. Try to play safer!`;
+            } else if (kda >= 4.0) {
+                baseText = `A rare mistake! You've been playing great.`;
+            } else if (kills > 5 && deaths > kills) {
+                baseText = `You are trading heavily. Focus on surviving.`;
+            } else {
+                baseText = `You were slain by ${killerChampion}!`;
+            }
+
+            // 2. TODO: Map role-based context (Opponent lane vs Roams/Ganks)
+            if (playerRole === killerRole) {
+                baseText += ` Your lane opponent ${killerChampion} got the better of you this time.`;
+            } else if (killerRole === "JUNGLE") {
+                baseText += ` Watch out for the jungler! ${killerChampion} caught you out.`;
+            } else if (killerRole === "UTILITY") {
+                baseText += ` Defeated by the enemy support, ${killerChampion}!`;
+            } else if (killerRole !== "" && playerRole !== "") {
+                baseText += ` The enemy ${killerRole.toLowerCase()} killed you.`;
+            }
+
+            const content = await llmPrompt(
+                "I died in League of Legends. Write a playful message. Return only the final text, with no options or explanations.",
+                baseText
+            );
+
+            console.log(content);
+
+            return content;
+        }
+        
+        return ''; // Return null if no death event occurred
+    }
+
 // One-time advice to give during loading screen
 async function doLoadingScreenOverview(data) {
     if (data.gameData.gameTime < 1 && !window.leagueAssist.loadingScreenOverviewDone) {
         window.leagueAssist.loadingScreenOverviewDone = true;
-        // TODO: modify prompt to focus more on lane matchup
         const {championName: myChamp, position: myRole, team: myTeam} = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName);
-
         if (myRole === "NONE") {
-
+            return 'Good luck and have fun!'
         }
 
         const {championName: myOpp} = data.allPlayers.find((p) => p.position === myRole && p.team !== myTeam)
-
-
-        const advice = await askGameAdvice(data.prompt)
+        const prompt = `I am playing ${myChamp} and my role opponent is ${myOpp}. Give me advice to win this matchup.`
+        const advice = await askGameAdvice(prompt)
         return advice;
     }
-
     return '';
 }
 

@@ -7,12 +7,16 @@ let audioQueue = Promise.resolve();
 async function playTextToSpeech(text) {
   
     // Initialize or resume the global AudioContext
-    if (!globalAudioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        globalAudioCtx = new AudioContext();
-    }
-    if (globalAudioCtx.state === 'suspended') {
-        await globalAudioCtx.resume();
+    try {
+        if (!globalAudioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            globalAudioCtx = new AudioContext();
+        }
+        if (globalAudioCtx.state === 'suspended') {
+            await globalAudioCtx.resume();
+        }
+    } catch(e) {
+        console.error(e);
     }
 
     console.log(text);

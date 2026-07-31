@@ -22,6 +22,9 @@ async function onGameEnded() {
 
         // construct message
         const message = `In your last match, you played as ${selfParticipant.championName} with ${selfParticipant.kills} kills, ${selfParticipant.deaths} deaths, and ${selfParticipant.assists} assists. Your team ${selfParticipant.win ? 'won' : 'lost'} the game.`;
+        const champions = new Set();
+        champions.add(selfParticipant.championName);
+        const stylized = await llmPrompt("This is a League of Legends game summary. Make this sentence more interesting. Output just the sentence.", message, champions)
         await playTextToSpeech(message);
         document.getElementById("game-summary").textContent = message;
     } catch (error) {
