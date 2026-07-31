@@ -50,7 +50,6 @@
     <script src="askGameAdvice.js"></script>
     <script src="gameEndAndStart.js"></script>
     <script>
-        let { lastHype, activeSummonerName, spendGoldReminder, loadingScreenOverviewDone} = window.leagueAssist;
         const stateMetaEl = document.getElementById('stateMeta');
         const activePlayerInfoEl = document.getElementById('activePlayerInfo');
         const teamAEl = document.getElementById('teamA');
@@ -59,8 +58,8 @@
         async function gameHype(data) {
             const time = data.gameData.gameTime
             const message = data.prompt;
-            if (time - lastHype > 150) {
-                lastHype = time;
+            if (time - window.leagueAssist.lastHype > 150) {
+                window.leagueAssist.lastHype = time;
                 const prompt = await askGameAdvice(data.prompt);
                 await playTextToSpeech(prompt, '', true);
             }
@@ -70,9 +69,8 @@
             const gameTime = data.gameData?.gameTime ?? null;
 
             // do loading screen intro once
-            console.log(gameTime);
-            if (gameTime < 1 && !loadingScreenOverviewDone) {
-                loadingScreenOverviewDone = true;
+            if (gameTime < 1 && !window.leagueAssist.loadingScreenOverviewDone) {
+                window.leagueAssist.loadingScreenOverviewDone = true;
                 askGameAdvice(data.prompt).then((prompt) => playTextToSpeech(prompt, '', true))
             }
 
@@ -80,22 +78,20 @@
 
             stateMetaEl.textContent = gameTime !== null ? `Game Time: ${Math.floor(gameTime)}s` : 'Game connected, waiting for data...';
             const activePlayer = data.activePlayer ?? {};
-            activeSummonerName = activePlayer.summonerName;
-            console.log(activeSummonerName, activePlayer.riotId, activePlayer.summonerName);
 
             const players = (data.allPlayers ?? []).map(player => ({
-                championName: player.championName || 'Unknown',
-                summonerName: player.riotId || player.summonerName || 'Unknown',
+                championName: player.championName,
+                summonerName: player.riotId || player.summonerName,
                 kills: player.scores?.kills ?? 0,
                 deaths: player.scores?.deaths ?? 0,
                 assists: player.scores?.assists ?? 0,
                 position: player.position || 'Unknown',
                 team: player.team,
                 items: (player.items ?? []).map(i => i.displayName).filter(Boolean).join(', '),
-                isSelf: player.riotId === activePlayer.riotId || player.summonerName === activeSummonerName,
+                isSelf: player.riotId === activePlayer.riotId || player.summonerName === window.leagueAssist.activeSummonerName,
             }));
-            const activeTeam = players.find(p => p.summonerName === activeSummonerName)?.team;
-            activePlayerInfoEl.textContent = `Active player: ${activeSummonerName} (${activeTeam})`;
+            const activeTeam = players.find(p => p.summonerName === window.leagueAssist.activeSummonerName)?.team;
+            activePlayerInfoEl.textContent = `${window.leagueAssist.activeSummonerName} ()`;
 
             teamAEl.innerHTML = '';
             teamBEl.innerHTML = '';
@@ -113,11 +109,11 @@
             });
 
             // player reminders
-            if (activePlayer.currentGold >= 1300 && !spendGoldReminder) {
-                spendGoldReminder = true;
+            if (activePlayer.currentGold >= 1300 && !window.leagueAssist.spendGoldReminder) {
+                window.leagueAssist.spendGoldReminder = true;
                 playTextToSpeech("You have enough gold to buy an item. Consider recalling to base and purchasing your items.");
-            } else if (activePlayer.currentGold < 1300 && spendGoldReminder) {
-                spendGoldReminder = false;
+            } else if (activePlayer.currentGold < 1300 && window.leagueAssist.spendGoldReminder) {
+                window.leagueAssist.spendGoldReminder = false;
             }
         }
 
@@ -134,11 +130,6 @@
 
             let eventsUpdateMessage = '';
             data.new_events.forEach((ev) => {
-                if (activeSummonerName.startsWith(ev.KillerName)) {
-                    eventsUpdateMessage += `Nice job! You killed ${ev.VictimName}`;
-                } else if (activeSummonerName.startsWith(ev.VictimName)) {
-                    eventsUpdateMessage += `Ouch! ${ev.KillerName} has slain you.`;
-                }
             });
 
             let pts = null;
@@ -149,7 +140,7 @@
 
             const combinedMessage = itemsUpdateMessage + ". " + eventsUpdateMessage;
             
-            await playTextToSpeech(combinedMessage, "Make this sentence slightly more intersting, but keep it very brief.", false, championsList);
+            await playTextToSpeech(combinedMessage, "Make this sentence more interesting. Keep it brief. Output the single sentence only.", false, championsList);
         }
 
         let failCount = 0;
@@ -160,13 +151,17 @@
                     throw new Error(`HTTP ${response.status}`);
                 }
                 const data = await response.json();
+
+                if (!window.leagueAssist.activeSummonerName) {
+                    onGameStart(data);
+                }
+
                 updateGameState(data);
                 checkGameStateDiff(data);
                 failCount = 0;
             } catch (error) {
                 failCount++;
-                // await playTextToSpeech(`Error fetching game state attempt ${failCount}`);
-                if (failCount > 2 && activeSummonerName) {
+                if (failCount > 2 && window.leagueAssist.activeSummonerName) {
                     await onGameEnded();
                 }
             }

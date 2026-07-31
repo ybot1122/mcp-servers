@@ -56,7 +56,6 @@ print("Model ready for offline use.")
 
 # Fetch and store item and champion info
 CHAMPION_DATA = requests.get('https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion.json').json()["data"]
-print(CHAMPION_DATA)
 
 app = Flask(__name__)
 
@@ -141,8 +140,7 @@ def query_llm_league():
     try:
         response = g_client.models.generate_content(
             model=gemini_model,
-            instructions=instructions,
-            contents=current_game_state,
+            contents=instructions + current_game_state,
         )
 
         return jsonify({
@@ -155,10 +153,14 @@ def query_llm_league():
 
     # openai
     try:
+        messages_input = [
+            {"role": "user", "content": current_game_state}
+        ]
         response = openai_client.responses.create(
             model=openai_model,
             instructions=instructions,
-            input=current_game_state,
+            input=messages_input,
+            max_output_tokens=1000
         )
         return jsonify({
             'query': current_game_state,
@@ -170,10 +172,13 @@ def query_llm_league():
 
     # anthropic
     try:
+        messages_input = [
+            {"role": "user", "content": instructions + current_game_state}
+        ]
         response = anthropic_client.messages.create(
             model=anthropic_model,
-            instructions=instructions,
-            input=current_game_state,
+            messages=messages_input,
+            max_tokens=1000
         )
         return jsonify({
             'query': current_game_state,
@@ -183,7 +188,7 @@ def query_llm_league():
     except Exception as e:
         print(e)
 
-    return jsonify({'error': f'Failed to get League advice: {str(e)}'}), 500
+    return jsonify({'error': f'Failed to get League advice'}), 500
 
 
 if __name__ == '__main__':

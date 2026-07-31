@@ -3,7 +3,8 @@ const gameInitState = {
     activeSummonerName: null,
     lastHype: 30,
     loadingScreenOverviewDone: false,
-    spendGoldReminder: false
+    spendGoldReminder: false,
+    activePlayer: null
 }
 
 window.leagueAssist = {...gameInitState}
@@ -34,4 +35,10 @@ async function onGameEnded() {
     const teamBEl = document.getElementById('teamB');
     teamAEl.innerHTML = '';
     teamBEl.innerHTML = '';
+}
+
+async function onGameStart(data) {
+    console.log('game starting')
+    const activePlayer = data.activePlayer ?? {};
+    window.leagueAssist.activeSummonerName = activePlayer.riotId
 }
