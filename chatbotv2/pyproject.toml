@@ -1,0 +1,17 @@
+[project]
+name = "chatbotv2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "accelerate>=1.14.0",
+    "flask>=3.1.3",
+    "google-genai>=2.16.0",
+    "ollama>=0.6.2",
+    "pykokoro[cpu]>=0.7.2",
+    "requests>=2.34.2",
+    "soundfile>=0.14.0",
+    "torch>=2.13.0",
+    "transformers>=5.14.1",
+]

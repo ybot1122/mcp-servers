@@ -2,3 +2,5 @@ credentials.json
 token.json
 *-token.json
 __pycache__/
+local_llama_3_1_8b/
+local_model/

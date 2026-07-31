@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>League Assist</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <main class="chat-shell">
+        <section class="header">
+            <h1>League Assist</h1>
+        </section>
+
+        <section class="state-panel" id="statePanel">
+            <div class="state-header">
+                <div>
+                    <h2>Live Game State</h2>
+                    <p>Polling the League client every second for champions, summoner names, items, and KDA.</p>
+                    <div class="active-player-info" id="activePlayerInfo">Active player: unknown</div>
+                </div>
+                <div class="state-meta" id="stateMeta">No game has started yet.</div>
+            </div>
+
+            <div class="team-grid">
+                <div class="team-column">
+                    <h3>My Team</h3>
+                    <div class="player-list" id="teamA"></div>
+                </div>
+                <div class="team-column">
+                    <h3>Enemy Team</h3>
+                    <div class="player-list" id="teamB"></div>
+                </div>
+            </div>
+
+            <div id="game-summary">
+            </div>
+
+            <div id="gameAudio">
+                <button onclick="playTextToSpeech('Welcome to League Assist! I will provide you with live updates on your game, including champion information, KDA, and item purchases. Let\'s get started!')">
+                    Play Welcome Message
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="playTextToSpeech.js"></script>
+    <script src="buildPlayerCard.js"></script>
+    <script src="askGameAdvice.js"></script>
+    <script>
+        let lastHype = 30;
+        let activeSummonerName = "WhipMyHair#2256"
+        let spendGoldReminder = false;
+        let loadingScreenOverviewDone = false;
+        const stateMetaEl = document.getElementById('stateMeta');
+        const activePlayerInfoEl = document.getElementById('activePlayerInfo');
+        const teamAEl = document.getElementById('teamA');
+        const teamBEl = document.getElementById('teamB');
+        const gameAudioEl = document.getElementById('gameAudio');
+
+        const ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+        const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+        const SCALES = ["", "thousand", "million", "billion"];
+
+        function numberToWords(num) {
+            if (num === 0) return "zero";
+            
+            function convertLessThanOneThousand(n) {
+                let str = "";
+
+                if (n >= 100) {
+                    str += ONES[Math.floor(n / 100)] + " hundred ";
+                    n %= 100;
+                }
+
+                if (n >= 200 || n >= 20) {
+                    str += TENS[Math.floor(n / 10)] + " ";
+                    n %= 10;
+                }
+
+                if (n > 0) {
+                    str += ONES[n] + " ";
+                }
+
+                return str.trim();
+            }
+
+            let wordResult = "";
+            let scaleIndex = 0;
+
+            while (num > 0) {
+                let chunk = num % 1000;
+                if (chunk !== 0) {
+                    let chunkWords = convertLessThanOneThousand(chunk);
+                    wordResult = chunkWords + (SCALES[scaleIndex] ? " " + SCALES[scaleIndex] : "") + " " + wordResult;
+                }
+                num = Math.floor(num / 1000);
+                scaleIndex++;
+            }
+
+            return wordResult.trim();
+        }
+
+        async function gameHype(data) {
+            const time = data.gameData.gameTime
+            const message = data.prompt;
+            if (time - lastHype > 150) {
+                lastHype = time;
+                const prompt = await askGameAdvice(data.prompt);
+                await playTextToSpeech(prompt, '', true);
+            }
+        }
+
+        function updateGameState(data) {
+            const gameTime = data.gameData?.gameTime ?? null;
+
+            // do loading screen intro once
+            console.log(gameTime);
+            if (gameTime < 1 && !loadingScreenOverviewDone) {
+                loadingScreenOverviewDone = true;
+                askGameAdvice(data.prompt).then((prompt) => playTextToSpeech(prompt, '', true))
+            }
+
+            gameHype(data);
+
+            stateMetaEl.textContent = gameTime !== null ? `Game Time: ${Math.floor(gameTime)}s` : 'Game connected, waiting for data...';
+            const activePlayer = data.activePlayer ?? {};
+            activeSummonerName = activePlayer.summonerName;
+            console.log(activeSummonerName, activePlayer.riotId, activePlayer.summonerName);
+
+            const players = (data.allPlayers ?? []).map(player => ({
+                championName: player.championName || 'Unknown',
+                summonerName: player.riotId || player.summonerName || 'Unknown',
+                kills: player.scores?.kills ?? 0,
+                deaths: player.scores?.deaths ?? 0,
+                assists: player.scores?.assists ?? 0,
+                position: player.position || 'Unknown',
+                team: player.team,
+                items: (player.items ?? []).map(i => i.displayName).filter(Boolean).join(', '),
+                isSelf: player.riotId === activePlayer.riotId || player.summonerName === activeSummonerName,
+            }));
+            const activeTeam = players.find(p => p.summonerName === activeSummonerName)?.team;
+            activePlayerInfoEl.textContent = `Active player: ${activeSummonerName} (${activeTeam})`;
+
+            teamAEl.innerHTML = '';
+            teamBEl.innerHTML = '';
+
+            players.forEach(player => {
+                const card = buildPlayerCard(player);
+                if (player.isSelf) {
+                    card.classList.add('self');
+                }
+                if (player.team === activeTeam) {
+                    teamAEl.appendChild(card);
+                } else {
+                    teamBEl.appendChild(card);
+                }
+            });
+
+            // player reminders
+            if (activePlayer.currentGold >= 1300 && !spendGoldReminder) {
+                spendGoldReminder = true;
+                playTextToSpeech("You have enough gold to buy an item. Consider recalling to base and purchasing your items.");
+            } else if (activePlayer.currentGold < 1300 && spendGoldReminder) {
+                spendGoldReminder = false;
+            }
+        }
+
+        async function loadGameSummary() {
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/lookup-summoner?summonerName=${encodeURIComponent(activeSummonerName)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                const puuid = data.puuid;
+                const lastMatch = data.matchDetails[0];
+                const selfParticipant = lastMatch.info.participants.find((p) => p.puuid === puuid);
+                const message = `In your last match, you played as ${selfParticipant.championName} with ${numberToWords(parseInt(selfParticipant.kills))} kills, ${numberToWords(parseInt(selfParticipant.deaths))} deaths, and ${numberToWords(parseInt(selfParticipant.assists))} assists. Your team ${selfParticipant.win ? 'won' : 'lost'} the game.`;
+                await playTextToSpeech(message);
+                document.getElementById("game-summary").textContent = message;
+            } catch (error) {
+                stateMetaEl.textContent = `Unable to load game data: ${error.message}`;
+            } finally {
+                // reset local game state
+                activeSummonerName = null;
+                lastHype = 30;
+                loadingScreenOverviewDone = false;
+                teamAEl.innerHTML = '';
+                teamBEl.innerHTML = '';
+            }
+        }
+
+        async function checkGameStateDiff(data) {
+            const diff = data.diff;
+            let itemsUpdateMessage = '';
+            let championsList = new Set();
+            Object.keys(diff).forEach(key => {
+                if (diff[key].length > 0) {
+                    itemsUpdateMessage += `${key} has purchased ${diff[key].join(', ')}.`;
+                    championsList.add(key);
+                }
+            });
+
+            let eventsUpdateMessage = '';
+            data.new_events.forEach((ev) => {
+                if (activeSummonerName.startsWith(ev.KillerName)) {
+                    championsList.add(ev.VictimName)
+                    eventsUpdateMessage += `Nice job! You killed ${ev.VictimName}`;
+                } else if (activeSummonerName.startsWith(ev.VictimName)) {
+                    championsList.add(ev.KillerName)
+                    eventsUpdateMessage += `Ouch! ${ev.KillerName} has slain you.`;
+                }
+            });
+
+            let pts = null;
+
+            if (!itemsUpdateMessage && !eventsUpdateMessage) {
+                return;
+            }
+
+            const combinedMessage = itemsUpdateMessage + ". " + eventsUpdateMessage;
+            
+            await playTextToSpeech(combinedMessage, "Make this sentence more interesting. Keep it brief. Output the single sentence only", false, championsList);
+        }
+
+        let failCount = 0;
+        async function fetchGameState() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/liveclientdata/allgamedata');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                updateGameState(data);
+                checkGameStateDiff(data);
+                failCount = 0;
+            } catch (error) {
+                failCount++;
+                // await playTextToSpeech(`Error fetching game state attempt ${failCount}`);
+                if (failCount > 2 && activeSummonerName) {
+                    await loadGameSummary();
+                }
+            }
+            setTimeout(fetchGameState, 5000);
+        }
+
+        fetchGameState();
+    </script>
+</body>
+</html>  

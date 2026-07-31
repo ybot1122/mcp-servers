@@ -24,6 +24,9 @@ mcp = FastMCP("league of legends", lifespan=app_lifespan)
 # HELPER FUNCTION to get information about a player
 def getPlayerInfo(playerInfo: dict) -> dict:
     """Extracts relevant player information from the playerInfo dictionary."""
+    items = playerInfo.get("items", [])
+    itemNames = [item.get("displayName", "") for item in items if item.get("displayName")]
+
     return {
         "riotId": playerInfo.get("riotId", "UNKNOWN RIOT ID"),
         "championName": playerInfo.get("championName", "UNKNOWN CHAMPION NAME"),
@@ -32,7 +35,9 @@ def getPlayerInfo(playerInfo: dict) -> dict:
         "team": playerInfo.get("team", "UNKNOWN TEAM"),
         "kills": playerInfo.get("scores", {}).get("kills", "UNKNOWN KILLS"),
         "deaths": playerInfo.get("scores", {}).get("deaths", "UNKNOWN DEATHS"),
-        "position": playerInfo.get("position", "UNKNOWN ROLE")
+        "cs": playerInfo.get("scores", {}).get("creepScore", "UNKNOWN CS"),
+        "position": playerInfo.get("position", "UNKNOWN ROLE"),
+        "items": ", ".join(itemNames) if itemNames else "No items"
     }
 
 @mcp.tool()
@@ -146,8 +151,8 @@ async def get_current_game_state() -> str:
     teammates = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") == currPlayerInfo['team']]
     opponents = [getPlayerInfo(p) for p in data.get("allPlayers", []) if p.get("team") != currPlayerInfo['team']]
 
-    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + ']'  for p in teammates])}."
-    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + ']' for p in opponents])}."
+    teammateInfo = f"My team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [CS ' + str(p['cs']) + '] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + '] [Items: ' + str(p['items']) + ']'  for p in teammates])}."
+    opponentInfo = f"Enemy team comp is: {', '.join([p['championName'] + ' - ' + p['position'] + ' (' + p['riotId'] + ') [' + str(p['kills']) + 'K/' + str(p['deaths']) + 'D] [CS ' + str(p['cs']) + '] [Level ' +  str(p['level']) +'] [Keystone: ' + str(p['keystone']) + '] [Items: ' + str(p['items']) + ']' for p in opponents])}."
 
     gameTime = data["gameData"]["gameTime"]
 

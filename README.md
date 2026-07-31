@@ -1,6 +1,9 @@
 ### MCP Servers
 
-- **google-calendar**: retrieves events, helps with scheduling, and create events.
+- **[oura](https://github.com/ybot1122/mcp-servers/tree/main/oura#readme)**: gives health data from your Oura Ring
+  - "When was the last night I had a good quality sleep?"
+  - "Why was my sleep not so good last night?"
+- **[google-calendar](https://github.com/ybot1122/mcp-servers/blob/main/google-calendar/README.md)**: retrieves events, helps with scheduling, and create events.
   - "Find a 30 minute window for me today"
   - "What's my schedule for this weekend"
   - "Book a 1 hr session at 3:30pm tomorrow"
@@ -8,7 +11,7 @@
   - "Check my inbox"
   - "Mark all the emails as read"
   - "Mark the Sports emails as read"
-- **league-of-legends:** return summary of active game, return items per champion, and return summary of a player's match history
+- **[league-of-legends](https://github.com/ybot1122/mcp-servers/tree/main/league-of-legends#readme):** return summary of active game, return items per champion, and return summary of a player's match history
   - "What tips can you give me for my current League of Legends game?"
   - "Which item should I build next?"
   - "Is my jungler playing their main role?"
