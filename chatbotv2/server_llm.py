@@ -6,6 +6,8 @@ import json
 from flask import Flask, request, jsonify
 from google import genai
 import requests
+from openai import OpenAI
+from anthropic import Anthropic
 
 MODEL_ID = "google/gemma-2-2b-it"
 LOCAL_MODEL_PATH = "./local_model"
@@ -107,15 +109,25 @@ def query_llm():
     except Exception as e:
         return jsonify({'error': f'Failed to process LLM request: {str(e)}'}), 500
 
-api_key = None
+g_api_key = None
+openai_api_key = None
+anthropic_api_key = None
 
 # Open and load the JSON file
 with open("credentials.json", "r") as file:
   data = json.load(file)
-  api_key = data.get("googleAiApiKey")
+  g_api_key = data.get("googleAiApiKey")
+  openai_api_key = data.get("openAiApiKey")
+  anthropic_api_key = data.get("anthropicApiKey")
 
-client = genai.Client(api_key=api_key)
+g_client = genai.Client(api_key=g_api_key)
 gemini_model = 'gemini-3.6-flash'
+
+openai_client = OpenAI(api_key=openai_api_key)
+openai_model = 'gpt-5.5'
+
+anthropic_client = Anthropic(api_key=anthropic_api_key)
+anthropic_model = 'claude-opus-5'
 
 @app.route('/league-game', methods=['GET'])
 def query_llm_league():
@@ -123,16 +135,55 @@ def query_llm_league():
     if not current_game_state:
         return jsonify({'error': 'Missing required query parameter "text"'}), 400
 
-    response = client.models.generate_content(
-        model=gemini_model,
-        contents='You are an expert at League of Legends. Here is the state of my current ranked game. Answer in 5 sentences max: ' + current_game_state,
-    )
+    instructions = 'You are an expert at League of Legends. Here is the state of my current ranked game. Answer in 5 sentences max.'
 
-    return jsonify({
-        'query': current_game_state,
-        'response': response.text,
-        'model': gemini_model,
-    })
+    # gemini
+    try:
+        response = g_client.models.generate_content(
+            model=gemini_model,
+            instructions=instructions,
+            contents=current_game_state,
+        )
+
+        return jsonify({
+            'query': current_game_state,
+            'response': response.text,
+            'model': gemini_model,
+        })
+    except Exception as e:
+        print(e)
+
+    # openai
+    try:
+        response = openai_client.responses.create(
+            model=openai_model,
+            instructions=instructions,
+            input=current_game_state,
+        )
+        return jsonify({
+            'query': current_game_state,
+            'response': response.output_text,
+            'model': openai_model,
+        })
+    except Exception as e:
+        print(e)
+
+    # anthropic
+    try:
+        response = anthropic_client.messages.create(
+            model=anthropic_model,
+            instructions=instructions,
+            input=current_game_state,
+        )
+        return jsonify({
+            'query': current_game_state,
+            'response': response.output_text,
+            'model': anthropic_model,
+        })
+    except Exception as e:
+        print(e)
+
+    return jsonify({'error': f'Failed to get League advice: {str(e)}'}), 500
 
 
 if __name__ == '__main__':

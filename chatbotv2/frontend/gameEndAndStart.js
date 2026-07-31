@@ -1,10 +1,9 @@
-const teamAEl = document.getElementById('teamA');
-const teamBEl = document.getElementById('teamB');
 
 const gameInitState = {
     activeSummonerName: null,
     lastHype: 30,
-    loadingScreenOverviewDone: false
+    loadingScreenOverviewDone: false,
+    spendGoldReminder: false
 }
 
 window.leagueAssist = {...gameInitState}
@@ -31,6 +30,8 @@ async function onGameEnded() {
 
     // reset local game state
     window.leagueAssist = {...gameInitState}
+    const teamAEl = document.getElementById('teamA');
+    const teamBEl = document.getElementById('teamB');
     teamAEl.innerHTML = '';
     teamBEl.innerHTML = '';
 }

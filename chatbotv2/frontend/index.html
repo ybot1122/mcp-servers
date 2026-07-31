@@ -50,10 +50,7 @@
     <script src="askGameAdvice.js"></script>
     <script src="gameEndAndStart.js"></script>
     <script>
-        let lastHype = 30;
-        let activeSummonerName = "WhipMyHair#2256"
-        let spendGoldReminder = false;
-        let loadingScreenOverviewDone = false;
+        let { lastHype, activeSummonerName, spendGoldReminder, loadingScreenOverviewDone} = window.leagueAssist;
         const stateMetaEl = document.getElementById('stateMeta');
         const activePlayerInfoEl = document.getElementById('activePlayerInfo');
         const teamAEl = document.getElementById('teamA');
@@ -152,7 +149,7 @@
 
             const combinedMessage = itemsUpdateMessage + ". " + eventsUpdateMessage;
             
-            await playTextToSpeech(combinedMessage, "Make this sentence more interesting. Keep it brief. Output the single sentence only", false, championsList);
+            await playTextToSpeech(combinedMessage, "Make this sentence slightly more intersting, but keep it very brief.", false, championsList);
         }
 
         let failCount = 0;
