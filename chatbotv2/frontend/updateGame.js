@@ -7,9 +7,36 @@ async function updateGame(data) {
         doLoadingScreenOverview(data),
         updatePlayerCards(data),
         periodicGameAdvice(data),
+        itemPurchases(data),
     ])
 
-    await playTextToSpeech(tts_prompts.join(' . '))
+    const prompt = tts_prompts.join(' ');
+
+    if (prompt.trim().length < 2) return;
+
+    await playTextToSpeech(tts_prompts.join(' '))
+}
+
+// Announce items that have been purchased
+async function itemPurchases(data) {
+    const diff = data.diff;
+    let itemsUpdateMessage = '';
+    let championsList = new Set();
+    Object.keys(diff).forEach(key => {
+        if (diff[key].length > 0) {
+            itemsUpdateMessage += `${key} has purchased ${diff[key].join(', ')}. `;
+            championsList.add(key);
+        }
+    });
+
+    if (!itemsUpdateMessage) {
+        return '';
+    }
+
+    const instructions = 'This is for a League of Legends game. Summarize the items purchased. Output a single sentence only.'
+    const stylized = await llmPrompt(instructions, itemsUpdateMessage, championsList)
+
+    return stylized
 }
 
 // Every 150 seconds, feed AI game overview and ask for advice

@@ -4,6 +4,8 @@ async function askGameAdvice(prompt) {
         const data = await response.json();
         return data.response;
      } catch(e) {
-        return '';
+        console.error(e);
      }
+
+     return '';
 }
