@@ -10,7 +10,8 @@ async function updateGame(data) {
         deathAnalysis(data),
         multiKillHype(data),
         loreMaster(data),
-        gameStartHype(data)
+        gameStartHype(data),
+        objectiveTimers(data)
     ])
 
     const voices = [
@@ -21,7 +22,8 @@ async function updateGame(data) {
         'hype',
         'hype',
         'bm_george',
-        'hype'
+        'hype',
+        'af_bella',
     ]
 
 
@@ -66,7 +68,52 @@ async function periodicGameAdvice(data) {
 
 // TODO add warnings for early gank timers (lvl 2 gank 1:15, lvl 3 gank 1:55, lvl 4 gank 2:55)
 
-// TODO add warnings for objecitve timers (dragon, herald, baron, elder - 1 min advance notice to find a reset)
+// Gives 1 minute warning for map objectives
+async function objectiveTimers(data) {
+
+    const timers = {
+        first_dragon: 300,
+        first_voidgrubs: 360,
+        first_baron: 1200,
+        first_herald: 480,
+        baron_respawn: 360,
+        dragon_respawn: 300,
+        elder_respawn: 360,
+    }
+
+    const gameTime = data.gameData.gameTime;
+    const newEvents = data.new_events;
+
+    if (gameTime < 5 && !window.leagueAssist.objectiveTimersInitialized) {
+        window.leagueAssist.objectiveTimersInitialized = true;
+        ['first_dragon', 'first_voidgrubs', 'first_baron', 'first_herald'].forEach((objective) => {
+            setTimeout(() => {
+                if (window.leagueAssist.activeSummonerName) {
+                    playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`);
+                }
+            }, (timers[objective] * 1000) - (60 * 1000));
+        });
+    }
+
+    // Check newEvents to see if any objective was slain, and start a respawn timer
+    newEvents.forEach((event) => {
+        if (event.EventName === 'DragonKill') {
+            const respawnTime = event.DragonType === 'Elder' ? timers['elder_respawn'] : timers['dragon_respawn'];
+            setTimeout(() => {
+                if (window.leagueAssist.activeSummonerName) {
+                    playTextToSpeech(`Dragon will respawn in 1 minute`);
+                }
+            }, respawnTime * 1000 - (60 * 1000));
+        }
+        if (event.EventName === 'BaronKill') {
+            setTimeout(() => {
+                if (window.leagueAssist.activeSummonerName) {
+                    playTextToSpeech(`Baron will respawn in 1 minute`);
+                }
+            }, timers['baron_respawn'] * 1000 - (60 * 1000));
+        }
+    });
+}
 
 // If player scores a multi kill, give some hype commentary
 async function multiKillHype(data) {
@@ -130,7 +177,6 @@ async function deathAnalysis(data) {
     return '';
 }
 
-// TODO
 async function gameStartHype(data) {
     const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
     const playerChampion = player.championName;
@@ -139,7 +185,7 @@ async function gameStartHype(data) {
         return '';
     }
 
-    if (data.gameData.gameTime > 5) {
+    if (data.gameData.gameTime > 5 && data.gameData.gameTime < 20) {
         window.leagueAssist.gameStartHypeDone = true;
 
         const text = await llmPrompt('The game has started in League of Legends. Write a hype sentence to encourage the player. Return only the final text, with no options or explanations.', `The player is playing ${playerChampion}.`, new Set([playerChampion]));
@@ -174,7 +220,7 @@ async function loreMaster(data) {
         return;
     }
 
-    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 30000) {
+    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 30000 && data.gameData.gameTime > 180) {
         window,leagueAssist.lastLore = Date.now();
         const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(data.allPlayers[window.leagueAssist.nextLoreInd].championName)}`, {
             method: 'GET',

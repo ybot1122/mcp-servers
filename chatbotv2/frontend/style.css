@@ -160,3 +160,15 @@
             line-height: 1.4;
             white-space: pre-wrap;
         }
+
+        #chat-log {
+            height: 200px;
+            overflow-y: auto;
+        }
+
+        #chat-log div {
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }

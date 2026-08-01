@@ -7,7 +7,8 @@ const gameInitState = {
     lastLore: Date.now(),
     nextLoreInd: 0,
     lastSpeechTime: Date.now(),
-    gameStartHypeDone: false
+    gameStartHypeDone: false,
+    objectiveTimersInitialized: false,
 }
 
 window.leagueAssist = {...gameInitState}

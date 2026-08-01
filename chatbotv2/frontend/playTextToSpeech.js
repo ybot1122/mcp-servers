@@ -39,6 +39,13 @@ async function playTextToSpeech(text, voice = undefined) {
       // 2. Decode the unified MP3 payload into an AudioBuffer
       const audioBuffer = await globalAudioCtx.decodeAudioData(arrayBuffer);
 
+      // 3. Add message to chat log
+      const el = document.getElementById('chat-log');
+      const messageEl = document.createElement('div');
+      messageEl.textContent = text;
+      el.appendChild(messageEl);
+      el.scrollTop = el.scrollHeight;
+
       // This promise resolves only when this specific MP3 finishes playing completely
       await new Promise((resolvePlayback) => {
         // 3. Create, link, and instantiate the buffer source
