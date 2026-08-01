@@ -110,7 +110,7 @@ async function deathAnalysis(data) {
         let baseText = "";
         let roleText = "";
 
-        const text = `${playerChampion} - ${playerRole} died to ${killerChampion} - ${killerRole}. Player now has ${deaths} deaths.`
+        const text = `${playerChampion} died to ${killerChampion}. Player now has ${deaths} deaths.`
 
         const content = await llmPrompt(
             "The player died in League of Legends. Write a playful sentence. Return only the final text, with no options or explanations.",
@@ -122,6 +122,14 @@ async function deathAnalysis(data) {
     }
     
     return '';
+}
+
+// TODO
+async function gameStartHype(data) {
+    const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
+    const playerChampion = player.championName;
+
+    return '[excited]The game has started! [confident]I believe in you ' + playerChampion + '.';
 }
 
 // One-time advice to give during loading screen

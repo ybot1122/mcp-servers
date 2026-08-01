@@ -50,65 +50,63 @@ with open("credentials.json", "r") as file:
 @app.route('/hype-tts', methods=['GET'])
 def hype_tts():
     text_value = request.args.get('text', '')
-    
     if not text_value:
-        return "Missing 'text' query parameter", 400
+        return 'Missing text query parameter', 400
     try:
+        print(text_value)
         r = requests.post(
             "https://api.fish.audio/v1/tts",
             headers={
-                "Authorization": f"Bearer {fish_audio_api_key}",
-                "Content-Type": "application/json",
-                "model": "s2.1-pro-free",
+                'Authorization': f'Bearer {fish_audio_api_key}',
+                'Content-Type': 'application/json',
+                'model': 's2.1-pro-free',
             },
             json={
-                "text": text_value,
-                "reference_id": "e81232c5dea64b309c6cef5931fc455f",
-                "format": "wav",
-            },
+                'text': text_value,
+                'reference_id': 'e81232c5dea64b309c6cef5931fc455f',
+                'format': 'mp3',
+                'sample_rate': 32000
+            }
         )
-        
-        # Generator function that passes chunks over as they arrive
-        def generate_chunks():
-            for chunk in r.iter_content(chunk_size=4096):
-                if chunk:
-                    yield chunk
+        # Check if the API returned an error status
+        if r.status_code != 200:
+            return f'Fish Audio API returned error: {r.text}', r.status_code
+            
+        # 2. Wrap r.content bytes inside an io.BytesIO stream
+        audio_stream = io.BytesIO(r.content)
+        audio_stream.seek(0)
 
-        # Return stream directly with appropriate MP3 audio headers
-        return Response(
-            stream_with_context(generate_chunks()), mimetype="audio/mpeg"
-        )
+        # 3. Stream the valid MP3 container directly to the browser
+        return send_file(audio_stream, mimetype='audio/mpeg')
     except Exception as e:
-        print(f"Error during TTS generation: {str(e)}")
-        return f"TTS generation failed: {str(e)}", 500
+        print(f'Error during TTS generation: {str(e)}')
+        return f'TTS generation failed: {str(e)}', 500
 
 @app.route('/tts', methods=['GET'])
 def tts():
     text_value = request.args.get('text', '')
     voice_value = request.args.get('voice', None)
-    
     if not text_value:
-        return "Missing 'text' query parameter", 400
-
-    # Randomly select 1 of the 54 voices for this specific request
+        return 'Missing text query parameter', 400
+        
     selected_voice = voice_value if voice_value in ALL_VOICES else random.choice(ALL_VOICES)
-    print(f"Generating speech for text: '{text_value}' using voice: '{selected_voice}'")
-
-    def generate_audio_stream():
+    print(f'Generating speech for text: {text_value} using voice: {selected_voice}')
+    
+    try:
+        # Run Kokoro pipeline inference
         result = pipeline(text_value, voice=selected_voice)
         audio_data = result.audio
-        
-        # Kokoro provides Float32 numbers natively. We convert them to 
-        # standard Int16 (16-bit PCM) arrays for ultra-lightweight streaming.
-        pcm16_data = (audio_data * 32767).astype(np.int16)
-        
-        # Stream the raw bytes directly without any WAV headers blocking it
-        yield pcm16_data.tobytes()
+                
+        mp3_io = io.BytesIO()
+        # Encode directly to MP3 format
+        sf.write(mp3_io, audio_data, 24000, format='MP3')
+        mp3_io.seek(0)
 
-    return Response(
-        stream_with_context(generate_audio_stream()), 
-        mimetype="audio/pcm"  # Updated mime-type layout
-    )
+        return send_file(mp3_io, mimetype='audio/mpeg')
+    except Exception as e:
+        print(f'Error during local TTS generation: {str(e)}')
+        return f'TTS generation failed: {str(e)}', 500
+
 
 @app.route('/tts-wav', methods=['GET'])
 def ttswav():

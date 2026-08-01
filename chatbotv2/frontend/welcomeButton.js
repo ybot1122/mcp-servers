@@ -59,4 +59,6 @@ playButton.addEventListener('click', async () => {
         // Subsequent clicks instantly trigger the audio since it's cached in memory
         playAudio();
     }
+
+    playTextToSpeech('hello hello hello [sarcastic] looks like someone clicked the button', 'hype')
 });

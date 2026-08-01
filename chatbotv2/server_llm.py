@@ -77,7 +77,7 @@ def query_deeplore():
         return jsonify({'error': 'No champions provided'}), 400
 
     chosen_champion = random.choice(champions_list)
-    formatted_name = chosen_champion.capitalize()
+    formatted_name = ''.join(c for c in chosen_champion if c.isalnum()).capitalize()
     lore = requests.get('https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion/' + formatted_name + '.json').json()["data"][formatted_name]["lore"]
 
     if not lore:
