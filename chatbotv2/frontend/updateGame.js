@@ -71,27 +71,32 @@ async function periodicGameAdvice(data) {
 async function objectiveTimers(data) {
 
     const timers = {
-        first_dragon: 300,
-        first_voidgrubs: 360,
-        first_baron: 1200,
-        first_herald: 480,
-        baron_respawn: 360,
-        dragon_respawn: 300,
+        first_dragon: 5*60, // 5 minutes
+        first_voidgrubs: 8*60, // 8 minutes
+        first_baron: 20*60, // 20 minutes
+        first_herald: 15*60, // 15 minutes
+        baron_respawn: 6*60, // 6 minutes
+        dragon_respawn: 5*60, // 5 minutes
         elder_respawn: 360,
     }
 
     const gameTime = data.gameData.gameTime;
     const newEvents = data.new_events;
 
-    if (gameTime < 5 && !window.leagueAssist.objectiveTimersInitialized) {
+    if (!window.leagueAssist.objectiveTimersInitialized) {
         window.leagueAssist.objectiveTimersInitialized = true;
         ['first_dragon', 'first_voidgrubs', 'first_baron', 'first_herald'].forEach((objective) => {
             console.log('timer for ' + objective + ' set for ' + timers[objective] + ' seconds');
+
+            if (gameTime > timers[objective] - (60 * 1000)) {
+                return;
+            }   
+
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`);
                 }
-            }, (timers[objective] * 1000) - (60 * 1000));
+            }, (timers[objective] * 1000) - (60 * 1000) - (gameTime * 1000));
         });
     }
 
