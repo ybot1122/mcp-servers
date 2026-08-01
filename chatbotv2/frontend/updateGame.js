@@ -11,7 +11,8 @@ async function updateGame(data) {
         multiKillHype(data),
         loreMaster(data),
         gameStartHype(data),
-        objectiveTimers(data)
+        objectiveTimers(data),
+        colorCommentary(data),
     ])
 
     const voices = [
@@ -24,6 +25,7 @@ async function updateGame(data) {
         'bm_george',
         'hype',
         'af_bella',
+        'hype',
     ]
 
     tts_prompts.then((texts) => {
@@ -86,17 +88,15 @@ async function objectiveTimers(data) {
     if (!window.leagueAssist.objectiveTimersInitialized) {
         window.leagueAssist.objectiveTimersInitialized = true;
         ['first_dragon', 'first_voidgrubs', 'first_baron', 'first_herald'].forEach((objective) => {
-            console.log('timer for ' + objective + ' set for ' + timers[objective] + ' seconds');
-
-            if (gameTime > timers[objective] - (60 * 1000)) {
+            const timerLenInSec = timers[objective] - 60;
+            if (gameTime > timerLenInSec) {
                 return;
-            }   
-
+            }
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`);
                 }
-            }, (timers[objective] * 1000) - (60 * 1000) - (gameTime * 1000));
+            }, (timerLenInSec * 1000));
         });
     }
 
@@ -104,7 +104,7 @@ async function objectiveTimers(data) {
     newEvents.forEach((event) => {
         if (event.EventName === 'DragonKill') {
             const respawnTime = event.DragonType === 'Elder' ? timers['elder_respawn'] : timers['dragon_respawn'];
-            playTextToSpeech(`${event.DragonType} slain! Respawn in ${respawnTime / 60} minutes`);
+            playTextToSpeech(`${event.DragonType} dragon slain! Respawn in ${respawnTime / 60} minutes`);
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`Dragon will respawn in 1 minute`);
@@ -122,6 +122,29 @@ async function objectiveTimers(data) {
     });
 
     return '';
+}
+
+// generate color commentary for events not involving active player
+async function colorCommentary(data) {
+    const events = data.new_events.filter((ev) => 
+        (ev.EventName === "ChampionKill" && ev.VictimName !== data.activePlayer.riotIdGameName && ev.KillerName !== data.activePlayer.riotIdGameName
+            || ev.EventName === "TurretKill")
+        );
+    const commentary = await Promise.all(events.map(async (event) => {
+        const c1 = data.allPlayers.find((p) => p.summonerName === event.KillerName || p.championName === event.KillerName).championName;
+        const c2 = data.allPlayers.find((p) => p.summonerName === event.VictimName || p.championName === event.VictimName)?.championName;
+        const text = (event.EventName === "ChampionKill") ? `${c1} has slain ${c2}` : `${c1} has destroyed a turret`;
+        const champs = new Set([c1, c2].filter(Boolean));
+        const content = await llmPrompt(
+            "Write a color commentary sentence for the following League of Legends event. Return only the final text, with no options or explanations.",
+            text,
+            champs
+        );
+        return content;
+    }));
+
+    console.log(commentary)
+    return commentary.join(' ');
 }
 
 // If player scores a multi kill, give some hype commentary
@@ -229,8 +252,8 @@ async function loreMaster(data) {
         return;
     }
 
-    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 30000 && data.gameData.gameTime > 180) {
-        window,leagueAssist.lastLore = Date.now();
+    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 180000 && data.gameData.gameTime > 180) {
+        window.leagueAssist.lastLore = Date.now();
         const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(data.allPlayers[window.leagueAssist.nextLoreInd].championName)}`, {
             method: 'GET',
             headers: {
