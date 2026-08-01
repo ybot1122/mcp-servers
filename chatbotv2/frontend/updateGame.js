@@ -64,6 +64,10 @@ async function periodicGameAdvice(data) {
     return '';
 }
 
+// TODO add warnings for early gank timers (lvl 2 gank 1:15, lvl 3 gank 1:55, lvl 4 gank 2:55)
+
+// TODO add warnings for objecitve timers (dragon, herald, baron, elder - 1 min advance notice to find a reset)
+
 // If player scores a multi kill, give some hype commentary
 async function multiKillHype(data) {
     const multikillevent = data.new_events.find((ev) => ev.EventName === "Multikill" && ev.KillerName === data.activePlayer.riotIdGameName);
@@ -73,12 +77,12 @@ async function multiKillHype(data) {
         const streak = multikillevent.KillStreak;
         const text = `${playerChampion} scored a ${streak} kill streak!`;
         const content = await llmPrompt(
-            "The player scored a multi-kill in League of Legends. Write a hype comment. Return only the final text, with no options or explanations.",
+            "The player scored a multi-kill in League of Legends. Write a hype comment. Return only the final text, with no options or explanations. No emojis.",
             text,
             new Set([playerChampion])
         );
 
-        return '[excited]' + content + `(${streak >= 3 ? 'WHOOOOOO' : ''}`;
+        return '[excited]' + content + `${streak >= 3 ? 'WHOOOOOO' : ''}`;
     }
     
     return '';
