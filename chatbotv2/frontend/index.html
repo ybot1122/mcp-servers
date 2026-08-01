@@ -14,6 +14,11 @@
                 <button id="welcome_play">
                     Play Welcome Message
                 </button>
+                <button onclick="
+                window.enableHighQualityAdvice = !window.enableHighQualityAdvice;
+                this.textContent = window.enableHighQualityAdvice ? 'Disable High Quality Advice' : 'Enable High Quality Advice';">
+                    Enable High Quality Advice
+                </button>
             </div>
         </section>
 
