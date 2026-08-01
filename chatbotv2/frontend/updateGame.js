@@ -10,6 +10,7 @@ async function updateGame(data) {
         deathAnalysis(data),
         multiKillHype(data),
         loreMaster(data),
+        gameStartHype(data)
     ])
 
     const voices = [
@@ -19,7 +20,8 @@ async function updateGame(data) {
         'af_bella',
         'hype',
         'hype',
-        'bm_george'
+        'bm_george',
+        'hype'
     ]
 
 
@@ -129,7 +131,19 @@ async function gameStartHype(data) {
     const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
     const playerChampion = player.championName;
 
-    return '[excited]The game has started! [confident]I believe in you ' + playerChampion + '.';
+    if (window.leagueAssist.gameStartHypeDone) {
+        return '';
+    }
+
+    if (data.gameData.gameTime > 5) {
+        window.leagueAssist.gameStartHypeDone = true;
+
+        const text = await llmPrompt('The game has started in League of Legends. Write a hype sentence to encourage the player. Return only the final text, with no options or explanations.', `The player is playing ${playerChampion}.`, new Set([playerChampion]));
+        
+        return '[excited]' + text + ' [confident] I believe in you ' + playerChampion + '!';
+    }
+
+    return '';
 }
 
 // One-time advice to give during loading screen
