@@ -9,14 +9,26 @@ async function updateGame(data) {
         itemPurchases(data),
         deathAnalysis(data),
         multiKillHype(data),
+        loreMaster(data),
     ])
+
+    const voices = [
+        'am_eric',
+        'am_eric',
+        'am_eric',
+        'af_bella',
+        'am_puck',
+        'am_puck',
+        'bm_george'
+    ]
 
 
     tts_prompts.then((texts) => {
-        const prompt = texts.join(' ');
-
-        if (prompt.trim().length < 2) return;
-        playTextToSpeech(prompt)
+        texts.forEach((prompt, ind) => {
+            if (prompt && prompt.trim().length > 0) {
+                playTextToSpeech(prompt, voices[ind])
+            }
+        });
     });
 }
 
@@ -125,6 +137,22 @@ async function doLoadingScreenOverview(data) {
         const prompt = `I am playing ${myChamp} and my role opponent is ${myOpp}. Give me advice to win this matchup.`
         const advice = await askGameAdvice(prompt)
         return advice;
+    }
+    return '';
+}
+
+// detects if there hasn't been any speech in a while
+// then gives some lore about one of the champions in the game
+async function loreMaster(data) {
+    console.log(window.lastSpeechTime, Date.now(), Date.now() - window.lastSpeechTime)
+    if (Date.now() - window.lastSpeechTime > 30000) {
+        const content = await llmPrompt(
+            "The player is in a League of Legends game. Give some lore about the champions in the game. Return only the final text. 3 Sentences max. Do not give any advice or commentary, just lore.",
+            "",
+            new Set(data.allPlayers.map(p => p.championName))
+        );
+
+        return content;
     }
     return '';
 }

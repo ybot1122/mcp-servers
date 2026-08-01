@@ -4,7 +4,7 @@ let globalAudioCtx = null;
 // Global queue to ensure sequential playback across multiple function calls
 let audioQueue = Promise.resolve();
 
-async function playTextToSpeech(text) {
+async function playTextToSpeech(text, voice = undefined) {
   
     // Initialize or resume the global AudioContext
     try {
@@ -24,7 +24,8 @@ async function playTextToSpeech(text) {
     // Chain this entire playback task to the global queue
     audioQueue = audioQueue.then(async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:5001/tts?text=${encodeURIComponent(text)}`);
+            const voiceParam = voice ? `&voice=${encodeURIComponent(voice)}` : '';
+            const response = await fetch(`http://127.0.0.1:5001/tts?text=${encodeURIComponent(text)}${voiceParam}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             let nextStartTime = globalAudioCtx.currentTime;
@@ -32,6 +33,7 @@ async function playTextToSpeech(text) {
 
             // This promise resolves only when this specific stream finishes playing completely
             await new Promise(async (resolveStream) => {
+                window.lastSpeechTime = Date.now();
                 let pcmDataBuffer = [];
                 let isFirstBufferGroup = true;
                 const JITTER_BUFFER_SECONDS = 0.25;
@@ -87,6 +89,7 @@ async function playTextToSpeech(text) {
                     }
                     if (done) {
                         doneReading = true;
+                        window.lastSpeechTime = Date.now();
                         break;
                     }
                 }

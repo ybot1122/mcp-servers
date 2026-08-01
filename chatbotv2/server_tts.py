@@ -40,12 +40,13 @@ pipeline = KokoroPipeline(PipelineConfig(voice="af_sarah", generation=generation
 @app.route('/tts', methods=['GET'])
 def tts():
     text_value = request.args.get('text', '')
+    voice_value = request.args.get('voice', None)
     
     if not text_value:
         return "Missing 'text' query parameter", 400
 
     # Randomly select 1 of the 54 voices for this specific request
-    selected_voice = random.choice(ALL_VOICES)
+    selected_voice = voice_value if voice_value in ALL_VOICES else random.choice(ALL_VOICES)
     print(f"Generating speech for text: '{text_value}' using voice: '{selected_voice}'")
 
     def generate_audio_stream():
