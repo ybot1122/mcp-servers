@@ -8,6 +8,7 @@ async function updateGame(data) {
         periodicGameAdvice(data),
         itemPurchases(data),
         deathAnalysis(data),
+        multiKillHype(data),
     ])
 
 
@@ -49,50 +50,67 @@ async function periodicGameAdvice(data) {
     return '';
 }
 
-    // Whenever the active player dies, give some commentary based on game state
-    async function deathAnalysis(data) {
-        const deathEvent = data.new_events.find((ev) => ev.EventName === "ChampionKill" && ev.VictimName === data.activePlayer.riotIdGameName);
+// If player scores a multi kill, give some hype commentary
+async function multiKillHype(data) {
+    const multikillevent = data.new_events.find((ev) => ev.EventName === "Multikill" && ev.KillerName === data.activePlayer.riotIdGameName);
 
-        if (deathEvent) {
-            const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
-            const killer = data.allPlayers.find((p) => p.riotIdGameName === deathEvent.KillerName || p.championName === deathEvent.KillerName);
+    if (multikillevent) {
+        const playerChampion = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName).championName;
+        const streak = multikillevent.KillStreak;
+        const text = `${playerChampion} scored a ${streak} kill streak!`;
+        const content = await llmPrompt(
+            "The player scored a multi-kill in League of Legends. Write a hype comment. Return only the final text, with no options or explanations.",
+            text,
+            new Set([playerChampion])
+        );
 
-            // Fallback check in case the killer is a minion, monster, or turret
-            if (!killer) {
-                return "You were executed by a non-champion source!";
-            }
-
-            const champs = new Set();
-            const playerChampion = player.championName;
-            const killerChampion = killer.championName;
-            const playerRole = player.position;
-            const killerRole = killer.position; 
-            champs.add(playerChampion)
-            champs.add(killerChampion)
-
-            const {deaths, kills, assists} = player.scores;
-            const {deaths: killer_deaths, kills: killer_kills, assists: killer_assists} = killer.scores;
-
-            // Calculate current performance metrics
-            const kda = deaths === 0 ? (kills + assists) : (kills + assists) / deaths;
-            let baseText = "";
-            let roleText = "";
-
-            const text = `${playerChampion} - ${playerRole} died to ${killerChampion} - ${killerRole}. Player now has ${deaths} deaths.`
-
-            const content = await llmPrompt(
-                "The player died in League of Legends. Write a playful sentence. Return only the final text, with no options or explanations.",
-                text,
-                champs
-            );
-
-            console.log(content);
-
-            return content;
-        }
-        
-        return ''; // Return null if no death event occurred
+        return content;
     }
+    
+    return '';
+}
+
+
+// Whenever the active player dies, give some commentary based on game state
+async function deathAnalysis(data) {
+    const deathEvent = data.new_events.find((ev) => ev.EventName === "ChampionKill" && ev.VictimName === data.activePlayer.riotIdGameName);
+
+    if (deathEvent) {
+        const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
+        const killer = data.allPlayers.find((p) => p.riotIdGameName === deathEvent.KillerName || p.championName === deathEvent.KillerName);
+
+        // Fallback check in case the killer is a minion, monster, or turret
+        if (!killer) {
+            return "You were executed by a non-champion source!";
+        }
+
+        const playerChampion = player.championName;
+        const killerChampion = killer.championName;
+        const playerRole = player.position;
+        const killerRole = killer.position; 
+        const champs = new Set([playerChampion, killerChampion]);
+
+        const {deaths, kills, assists} = player.scores;
+        const {deaths: killer_deaths, kills: killer_kills, assists: killer_assists} = killer.scores;
+
+        // Calculate current performance metrics
+        const kda = deaths === 0 ? (kills + assists) : (kills + assists) / deaths;
+        let baseText = "";
+        let roleText = "";
+
+        const text = `${playerChampion} - ${playerRole} died to ${killerChampion} - ${killerRole}. Player now has ${deaths} deaths.`
+
+        const content = await llmPrompt(
+            "The player died in League of Legends. Write a playful sentence. Return only the final text, with no options or explanations.",
+            text,
+            champs
+        );
+
+        return content;
+    }
+    
+    return '';
+}
 
 // One-time advice to give during loading screen
 async function doLoadingScreenOverview(data) {
