@@ -25,7 +25,10 @@ async function playTextToSpeech(text, voice = undefined) {
     audioQueue = audioQueue.then(async () => {
         try {
             const voiceParam = voice ? `&voice=${encodeURIComponent(voice)}` : '';
-            const response = await fetch(`http://127.0.0.1:5001/tts?text=${encodeURIComponent(text)}${voiceParam}`);
+            const response = await (voice === 'hype' ? 
+                fetch(`http://127.0.0.1:5001/hype-tts?text=${encodeURIComponent(text)}${voiceParam}`)
+                : fetch(`http://127.0.0.1:5001/tts?text=${encodeURIComponent(text)}${voiceParam}`)
+            );
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             let nextStartTime = globalAudioCtx.currentTime;
@@ -33,7 +36,7 @@ async function playTextToSpeech(text, voice = undefined) {
 
             // This promise resolves only when this specific stream finishes playing completely
             await new Promise(async (resolveStream) => {
-                window.lastSpeechTime = Date.now();
+                window.leagueAssist.lastSpeechTime = Date.now();
                 let pcmDataBuffer = [];
                 let isFirstBufferGroup = true;
                 const JITTER_BUFFER_SECONDS = 0.25;
@@ -89,7 +92,7 @@ async function playTextToSpeech(text, voice = undefined) {
                     }
                     if (done) {
                         doneReading = true;
-                        window.lastSpeechTime = Date.now();
+                        window.leagueAssist.lastSpeechTime = Date.now();
                         break;
                     }
                 }

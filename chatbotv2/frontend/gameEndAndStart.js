@@ -3,7 +3,10 @@ const gameInitState = {
     activeSummonerName: null,
     lastHype: 30,
     loadingScreenOverviewDone: false,
-    activePlayer: null
+    activePlayer: null,
+    lastLore: Date.now(),
+    nextLoreInd: 0,
+    lastSpeechTime: Date.now()
 }
 
 window.leagueAssist = {...gameInitState}

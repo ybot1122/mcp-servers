@@ -17,8 +17,8 @@ async function updateGame(data) {
         'am_eric',
         'am_eric',
         'af_bella',
-        'am_puck',
-        'am_puck',
+        'hype',
+        'hype',
         'bm_george'
     ]
 
@@ -76,7 +76,7 @@ async function multiKillHype(data) {
             new Set([playerChampion])
         );
 
-        return content;
+        return '[excited]' + content + `(${streak >= 3 ? 'WHOOOOOO' : ''}`;
     }
     
     return '';
@@ -118,7 +118,7 @@ async function deathAnalysis(data) {
             champs
         );
 
-        return content;
+        return '[sarcastic]' + content;
     }
     
     return '';
@@ -144,15 +144,21 @@ async function doLoadingScreenOverview(data) {
 // detects if there hasn't been any speech in a while
 // then gives some lore about one of the champions in the game
 async function loreMaster(data) {
-    console.log(window.lastSpeechTime, Date.now(), Date.now() - window.lastSpeechTime)
-    if (Date.now() - window.lastSpeechTime > 30000) {
-        const content = await llmPrompt(
-            "The player is in a League of Legends game. Give some lore about the champions in the game. Return only the final text. 3 Sentences max. Do not give any advice or commentary, just lore.",
-            "",
-            new Set(data.allPlayers.map(p => p.championName))
-        );
+    if (window.leagueAssist.nextLoreInd >= data.allPlayers.length) {
+        return;
+    }
 
-        return content;
+    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 30000) {
+        window,leagueAssist.lastLore = Date.now();
+        const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(data.allPlayers[window.leagueAssist.nextLoreInd].championName)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const r = await content.json();
+        window.leagueAssist.nextLoreInd += 1
+        return r.response;
     }
     return '';
 }

@@ -1,5 +1,6 @@
 import time
 import os
+import random
 import torch
 import transformers
 import json
@@ -66,6 +67,33 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Headers"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
+
+@app.route('/deeplore', methods=['GET'])
+def query_deeplore():
+    raw_value = request.args.get('champions', '')
+    champions_list = [c.strip() for c in raw_value.split(',') if c.strip()]
+
+    if not champions_list:
+        return jsonify({'error': 'No champions provided'}), 400
+
+    chosen_champion = random.choice(champions_list)
+    formatted_name = chosen_champion.capitalize()
+    lore = requests.get('https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion/' + formatted_name + '.json').json()["data"][formatted_name]["lore"]
+
+    if not lore:
+        return jsonify({'error': f'No lore found for champion {formatted_name}'}), 404
+
+    prompt_with_context = "Summarize this League of Legends champion lore in 3 sentences max: " + lore
+
+    messages = [{"role": "user", "content": prompt_with_context}] 
+    outputs = pipe(messages, max_new_tokens=256)
+    generated_text = outputs[0]["generated_text"][-1]["content"].strip()
+
+    return jsonify({
+        'champion': formatted_name,
+        'response': generated_text
+    })
+
 
 @app.route('/llm', methods=['GET'])
 def query_llm():

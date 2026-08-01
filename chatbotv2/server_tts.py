@@ -1,5 +1,7 @@
 import io
+import json
 import random
+import requests
 from flask import Flask, request, Response, stream_with_context, jsonify, send_file
 from pykokoro import GenerationConfig, KokoroPipeline, PipelineConfig
 import soundfile as sf
@@ -36,6 +38,49 @@ generation = GenerationConfig(
     random_seed=42,
 )
 pipeline = KokoroPipeline(PipelineConfig(voice="af_sarah", generation=generation))
+
+fish_audio_api_key = None
+
+# Open and load the JSON file
+with open("credentials.json", "r") as file:
+  data = json.load(file)
+  fish_audio_api_key = data.get("fishAudioApiKey")
+
+
+@app.route('/hype-tts', methods=['GET'])
+def hype_tts():
+    text_value = request.args.get('text', '')
+    
+    if not text_value:
+        return "Missing 'text' query parameter", 400
+    try:
+        r = requests.post(
+            "https://api.fish.audio/v1/tts",
+            headers={
+                "Authorization": f"Bearer {fish_audio_api_key}",
+                "Content-Type": "application/json",
+                "model": "s2.1-pro-free",
+            },
+            json={
+                "text": text_value,
+                "reference_id": "e81232c5dea64b309c6cef5931fc455f",
+                "format": "wav",
+            },
+        )
+        
+        # Generator function that passes chunks over as they arrive
+        def generate_chunks():
+            for chunk in r.iter_content(chunk_size=4096):
+                if chunk:
+                    yield chunk
+
+        # Return stream directly with appropriate MP3 audio headers
+        return Response(
+            stream_with_context(generate_chunks()), mimetype="audio/mpeg"
+        )
+    except Exception as e:
+        print(f"Error during TTS generation: {str(e)}")
+        return f"TTS generation failed: {str(e)}", 500
 
 @app.route('/tts', methods=['GET'])
 def tts():
