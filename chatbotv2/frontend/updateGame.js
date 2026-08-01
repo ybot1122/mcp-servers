@@ -55,18 +55,21 @@ async function periodicGameAdvice(data) {
 
         if (deathEvent) {
             const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
-            const killer = data.allPlayers.find((p) => p.summonerName === deathEvent.KillerName);
+            const killer = data.allPlayers.find((p) => p.riotIdGameName === deathEvent.KillerName || p.championName === deathEvent.KillerName);
 
             // Fallback check in case the killer is a minion, monster, or turret
             if (!killer) {
                 return "You were executed by a non-champion source!";
             }
 
+            const champs = new Set();
             const playerChampion = player.championName;
             const killerChampion = killer.championName;
             const playerRole = player.position;
             const killerRole = killer.position; 
-            
+            champs.add(playerChampion)
+            champs.add(killerChampion)
+
             const {deaths, kills, assists} = player.scores;
             const {deaths: killer_deaths, kills: killer_kills, assists: killer_assists} = killer.scores;
 
@@ -75,31 +78,12 @@ async function periodicGameAdvice(data) {
             let baseText = "";
             let roleText = "";
 
-            // 1. TODO: Performance-based text generation
-            if (deaths >= 7) {
-                baseText = `Oof, that is ${deaths} deaths now. Try to play safer!`;
-            } else if (kda >= 4.0) {
-                baseText = `A rare mistake! You've been playing great.`;
-            } else if (kills > 5 && deaths > kills) {
-                baseText = `You are trading heavily. Focus on surviving.`;
-            } else {
-                baseText = `You were slain by ${killerChampion}!`;
-            }
-
-            // 2. TODO: Map role-based context (Opponent lane vs Roams/Ganks)
-            if (playerRole === killerRole) {
-                baseText += ` Your lane opponent ${killerChampion} got the better of you this time.`;
-            } else if (killerRole === "JUNGLE") {
-                baseText += ` Watch out for the jungler! ${killerChampion} caught you out.`;
-            } else if (killerRole === "UTILITY") {
-                baseText += ` Defeated by the enemy support, ${killerChampion}!`;
-            } else if (killerRole !== "" && playerRole !== "") {
-                baseText += ` The enemy ${killerRole.toLowerCase()} killed you.`;
-            }
+            const text = `${playerChampion} - ${playerRole} died to ${killerChampion} - ${killerRole}. Player now has ${deaths} deaths.`
 
             const content = await llmPrompt(
-                "I died in League of Legends. Write a playful message. Return only the final text, with no options or explanations.",
-                baseText
+                "The player died in League of Legends. Write a playful sentence. Return only the final text, with no options or explanations.",
+                text,
+                champs
             );
 
             console.log(content);

@@ -24,19 +24,19 @@ async function onGameEnded() {
         const message = `In your last match, you played as ${selfParticipant.championName} with ${selfParticipant.kills} kills, ${selfParticipant.deaths} deaths, and ${selfParticipant.assists} assists. Your team ${selfParticipant.win ? 'won' : 'lost'} the game.`;
         const champions = new Set();
         champions.add(selfParticipant.championName);
+        document.getElementById("game-summary").textContent = message;
+        const teamAEl = document.getElementById('teamA');
+        const teamBEl = document.getElementById('teamB');
+        teamAEl.innerHTML = '';
+        teamBEl.innerHTML = '';
         const stylized = await llmPrompt("This is a League of Legends game summary. Make this sentence more interesting. Output just the sentence.", message, champions)
         await playTextToSpeech(message);
-        document.getElementById("game-summary").textContent = message;
     } catch (error) {
         console.error(error)
     }
 
     // reset local game state
     window.leagueAssist = {...gameInitState}
-    const teamAEl = document.getElementById('teamA');
-    const teamBEl = document.getElementById('teamB');
-    teamAEl.innerHTML = '';
-    teamBEl.innerHTML = '';
 }
 
 async function onGameStart(data) {
