@@ -26,7 +26,6 @@ async function updateGame(data) {
         'af_bella',
     ]
 
-
     tts_prompts.then((texts) => {
         texts.forEach((prompt, ind) => {
             if (prompt && prompt.trim().length > 0) {
@@ -87,6 +86,7 @@ async function objectiveTimers(data) {
     if (gameTime < 5 && !window.leagueAssist.objectiveTimersInitialized) {
         window.leagueAssist.objectiveTimersInitialized = true;
         ['first_dragon', 'first_voidgrubs', 'first_baron', 'first_herald'].forEach((objective) => {
+            console.log('timer for ' + objective + ' set for ' + timers[objective] + ' seconds');
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`);
@@ -99,6 +99,7 @@ async function objectiveTimers(data) {
     newEvents.forEach((event) => {
         if (event.EventName === 'DragonKill') {
             const respawnTime = event.DragonType === 'Elder' ? timers['elder_respawn'] : timers['dragon_respawn'];
+            playTextToSpeech(`${event.DragonType} slain! Respawn in ${respawnTime / 60} minutes`);
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`Dragon will respawn in 1 minute`);
@@ -106,6 +107,7 @@ async function objectiveTimers(data) {
             }, respawnTime * 1000 - (60 * 1000));
         }
         if (event.EventName === 'BaronKill') {
+            playTextToSpeech(`Baron slain! Respawn in ${respawnTime / 60} minutes`);
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`Baron will respawn in 1 minute`);
@@ -113,6 +115,8 @@ async function objectiveTimers(data) {
             }, timers['baron_respawn'] * 1000 - (60 * 1000));
         }
     });
+
+    return '';
 }
 
 // If player scores a multi kill, give some hype commentary

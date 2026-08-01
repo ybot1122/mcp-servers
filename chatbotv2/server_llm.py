@@ -77,8 +77,15 @@ def query_deeplore():
         return jsonify({'error': 'No champions provided'}), 400
 
     chosen_champion = random.choice(champions_list)
-    formatted_name = ''.join(c for c in chosen_champion if c.isalnum()).capitalize()
-    lore = requests.get('https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion/' + formatted_name + '.json').json()["data"][formatted_name]["lore"]
+    formatted_name = ''.join(c for c in chosen_champion if c.isalnum())
+
+    if not formatted_name:
+        return jsonify({'error': 'Invalid champion name after formatting'}), 400
+
+    print(formatted_name)
+    lore_url = 'https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion/' + formatted_name + '.json'
+    print(f"Fetching lore for champion: {formatted_name} from {lore_url}")
+    lore = requests.get(lore_url).json()["data"][formatted_name]["lore"]
 
     if not lore:
         return jsonify({'error': f'No lore found for champion {formatted_name}'}), 404
