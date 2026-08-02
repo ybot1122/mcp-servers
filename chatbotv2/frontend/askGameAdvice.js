@@ -1,6 +1,6 @@
 async function askGameAdvice(prompt) {
 
-   if (!window.enableHighQualityAdvice) {
+   if (!window.leagueAssistSettings.enableHighQualityAdvice) {
       // use my local LLM
       try {
          const instructions = 'You are an expert at League of Legends. Here is the state of my current ranked game. Answer in 5 sentences max.'

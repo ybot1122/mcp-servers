@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>League Assist</title>
     <link rel="stylesheet" href="style.css" />
+    <script>
+        window.leagueAssistSettings = {
+            enableHighQualityAdvice: false,
+            enableItemAnnouncements: true,
+            enableLore: true,
+            enableColorCommentary: true,
+        }
+    </script>
 </head>
 <body>
     <main class="chat-shell">
@@ -14,14 +22,25 @@
                 <button id="welcome_play">
                     Play Welcome Message
                 </button>
-                <button onclick="
-                window.enableHighQualityAdvice = !window.enableHighQualityAdvice;
-                this.textContent = window.enableHighQualityAdvice ? 'Disable High Quality Advice' : 'Enable High Quality Advice';">
-                    Enable High Quality Advice
-                </button>
-                <button id="toggleMicButton">Turn Microphone On</button>
-                <div id="Micstatus">Status: Mic is Off</div>
-
+                <button id="togglePreferencesButton" type="button" aria-expanded="false" aria-controls="preferencesPanel">Set Preference</button>
+                <div id="preferencesPanel" class="preferences-panel hide" hidden>
+                    <div class="preference-option">
+                        <span>High quality advice</span>
+                        <button type="button" class="preference-toggle" data-setting="enableHighQualityAdvice" aria-pressed="false">Off</button>
+                    </div>
+                    <div class="preference-option">
+                        <span>Item Announcements</span>
+                        <button type="button" class="preference-toggle is-on" data-setting="enableItemAnnouncements" aria-pressed="false">On</button>
+                    </div>
+                    <div class="preference-option">
+                        <span>Lore</span>
+                        <button type="button" class="preference-toggle is-on" data-setting="enableLore" aria-pressed="false">On</button>
+                    </div>
+                    <div class="preference-option">
+                        <span>Color commentary</span>
+                        <button type="button" class="preference-toggle is-on" data-setting="enableColorCommentary" aria-pressed="false">On</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -66,7 +85,7 @@
     <script src="gameEndAndStart.js"></script>
     <script src="updateGame.js"></script>
     <script src="llmPrompt.js"></script>
-    <script src="microphone.js"></script>
+    <script src="preferencePanel.js"></script>
     <script>
         let failCount = 0;
         async function fetchGameState() {

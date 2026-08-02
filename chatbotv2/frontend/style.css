@@ -39,6 +39,83 @@
             line-height: 1.7;
         }
 
+        #gameAudio {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .preferences-panel {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: min(320px, calc(100vw - 48px));
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(10, 17, 30, 0.98);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+            display: grid;
+            gap: 12px;
+            z-index: 20;
+        }
+
+        .preferences-panel.hide {
+            display: none;
+        }
+
+        .preferences-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preferences-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .preferences-close {
+            border: 0;
+            background: transparent;
+            color: #e9edf5;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .preferences-panel p {
+            margin: 0;
+            color: #9bb2d6;
+            font-size: 0.95rem;
+        }
+
+        .preference-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .preference-toggle {
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.06);
+            color: #e9edf5;
+            border-radius: 999px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .preference-toggle.is-on {
+            background: rgba(79, 123, 255, 0.24);
+            border-color: rgba(79, 123, 255, 0.45);
+        }
+
         .state-panel {
             padding: 24px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);

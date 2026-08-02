@@ -44,6 +44,8 @@ function buildPlayerCard(player) {
         btn1.className = 'spell-button';
         btn1.textContent = spellOne.displayName || 'Spell 1';
         btn1.onclick = () => {
+            console.log(`Clicked ${spellOne.displayName} for ${player.riotId}`);
+            playTextToSpeech(`${player.championName} used ${spellOne.displayName}, cooldown set to ${summonerCooldowns[spellOne.displayName]} seconds.`, 'af_bella');
             window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'cooldown';
             btn1.disabled = true;
             setTimeout(() => {

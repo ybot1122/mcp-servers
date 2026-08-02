@@ -40,6 +40,11 @@ async function updateGame(data) {
 
 // Announce items that have been purchased
 async function itemPurchases(data) {
+
+    if (!window.leagueAssistSettings.enableItemAnnouncements) {
+        return '';
+    }
+
     const diff = data.diff;
     let itemsUpdateMessage = '';
     Object.keys(diff).forEach(key => {
@@ -135,6 +140,11 @@ async function objectiveTimers(data) {
 
 // generate color commentary for kills, inhib, turrets
 async function colorCommentary(data) {
+
+    if (!window.leagueAssistSettings.enableColorCommentary) {
+        return '';
+    }
+
     const events = data.new_events.filter((ev) => 
         (ev.EventName === "ChampionKill" || ev.EventName === "TurretKill" || ev.EventName === "InhibKilled"));
     const commentary = await Promise.all(events.map(async (event) => {
@@ -267,6 +277,11 @@ async function doLoadingScreenOverview(data) {
 // detects if there hasn't been any speech in a while
 // then gives some lore about one of the champions in the game
 async function loreMaster(data) {
+
+    if (!window.leagueAssistSettings.enableLore) {
+        return;
+    }
+
     if (window.leagueAssist.nextLoreInd >= data.allPlayers.length) {
         return;
     }
@@ -307,6 +322,7 @@ function updatePlayerCards(data) {
         items: (player.items ?? []).map(i => i.displayName).filter(Boolean).join(', '),
         isSelf: player.riotId === activePlayer.riotId || player.summonerName === window.leagueAssist.activeSummonerName,
         summonerSpells: player.summonerSpells,
+        riotId: player.riotId,
     }));
     const activeTeam = players.find(p => p.summonerName === window.leagueAssist.activeSummonerName)?.team;
     activePlayerInfoEl.textContent = `${window.leagueAssist.activeSummonerName} ()`;
