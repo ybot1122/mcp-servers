@@ -52,4 +52,5 @@ async function onGameStart(data) {
     console.log('game starting')
     const activePlayer = data.activePlayer ?? {};
     window.leagueAssist.activeSummonerName = activePlayer.riotId
+    
 }

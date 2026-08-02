@@ -104,7 +104,7 @@ async function objectiveTimers(data) {
     const myTeam = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName).team;
 
     // Check newEvents to see if any objective was slain, and start a respawn timer
-    newEvents.forEach((event) => {
+    newEvents.filter((ev) => ev.EventName === 'DragonKill' || ev.EventName === 'BaronKill').forEach((event) => {
         const objKillerTeam = data.allPlayers.find((p) => p.riotIdGameName === event.KillerName || p.championName === event.KillerName).team;
         const narrateTeam = objKillerTeam === myTeam ? 'your team' : 'the enemy team';
         if (event.EventName === 'DragonKill') {
@@ -133,16 +133,14 @@ async function objectiveTimers(data) {
     return '';
 }
 
-// generate color commentary for events not involving active player
+// generate color commentary for kills, inhib, turrets
 async function colorCommentary(data) {
     const events = data.new_events.filter((ev) => 
-        (ev.EventName === "ChampionKill" && ev.VictimName !== data.activePlayer.riotIdGameName && ev.KillerName !== data.activePlayer.riotIdGameName
-            || ev.EventName === "TurretKill")
-        );
+        (ev.EventName === "ChampionKill" || ev.EventName === "TurretKill" || ev.EventName === "InhibKilled"));
     const commentary = await Promise.all(events.map(async (event) => {
         const c1 = data.allPlayers.find((p) => p.riotIdGameName === event.KillerName || p.championName === event.KillerName).championName;
         const c2 = data.allPlayers.find((p) => p.riotIdGameName === event.VictimName || p.championName === event.VictimName)?.championName;
-        const text = (event.EventName === "ChampionKill") ? `${c1} has slain ${c2}` : `${c1} has destroyed a turret`;
+        const text = (event.EventName === "ChampionKill") ? `${c1} has slain ${c2}` : `${c1} has destroyed a ${event.EventName === "TurretKill" ? 'turret' : 'inhibitor'}`;
         const champs = new Set([c1, c2].filter(Boolean));
         const content = await llmPrompt(
             "Write a color commentary sentence for the following League of Legends event. Return only the final text, with no options or explanations.",
@@ -157,22 +155,34 @@ async function colorCommentary(data) {
 
 // If player scores a multi kill, give some hype commentary
 async function multiKillHype(data) {
-    const multikillevent = data.new_events.find((ev) => ev.EventName === "Multikill" && ev.KillerName === data.activePlayer.riotIdGameName);
+    const ev = data.new_events.filter((ev) => ev.EventName === "Multikill" | ev.EventName === "Ace").map(async (event) => {
+        const myTeam = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName).team;
+        if (event.EventName === "Ace") {
+            const message = (event.AcingTeam === myTeam) ? "Your team has aced the enemy!" : "The enemy team has aced your team!";
+            const content = await llmPrompt(
+                `This is a league of legends game. ${message} Write a hype comment. Return only the final text, with no options or explanations. No emojis.`,
+                ''
+            );
+            return (event.AcingTeam === myTeam ? '[excited][shouting]' : '[depressed]') + content + (event.AcingTeam === myTeam ? ' WHOOOOOO' : '[sobbing]');
+        }
+        
+        if (event.EventName === "Multikill") {
+            const playerChampion = data.allPlayers.find((p) => p.riotIdGameName === data.activePlayer.riotIdGameName).championName;
+            const streak = event.KillStreak;
+            const text = `${playerChampion} scored a ${streak} kill streak!`;
+            const content = await llmPrompt(
+                "The player scored a multi-kill in League of Legends. Write a hype comment. Return only the final text, with no options or explanations. No emojis.",
+                text,
+                new Set([playerChampion])
+            );
 
-    if (multikillevent) {
-        const playerChampion = data.allPlayers.find((p) => p.riotIdGameName === data.activePlayer.riotIdGameName).championName;
-        const streak = multikillevent.KillStreak;
-        const text = `${playerChampion} scored a ${streak} kill streak!`;
-        const content = await llmPrompt(
-            "The player scored a multi-kill in League of Legends. Write a hype comment. Return only the final text, with no options or explanations. No emojis.",
-            text,
-            new Set([playerChampion])
-        );
+            return content + `${streak >= 3 ? ' WHOOOOOO' : ''}`;
+        }
+        
+        return '';
+    });
 
-        return '[excited]' + content + `${streak >= 3 ? 'WHOOOOOO' : ''}`;
-    }
-    
-    return '';
+    return ev.join(' ');
 }
 
 
