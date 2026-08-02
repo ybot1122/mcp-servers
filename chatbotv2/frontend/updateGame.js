@@ -182,7 +182,8 @@ async function multiKillHype(data) {
         return '';
     });
 
-    return ev.join(' ');
+    const results = await Promise.all(ev);
+    return results.join(' ');
 }
 
 
@@ -295,7 +296,7 @@ function updatePlayerCards(data) {
 
     stateMetaEl.textContent = gameTime !== null ? `Game Time: ${Math.floor(gameTime)}s` : 'Game connected, waiting for data...';
 
-    const players = (data.allPlayers ?? []).map(player => ({
+    const players = data.allPlayers.map(player => ({
         championName: player.championName,
         summonerName: player.riotId || player.summonerName,
         kills: player.scores?.kills ?? 0,
@@ -305,6 +306,7 @@ function updatePlayerCards(data) {
         team: player.team,
         items: (player.items ?? []).map(i => i.displayName).filter(Boolean).join(', '),
         isSelf: player.riotId === activePlayer.riotId || player.summonerName === window.leagueAssist.activeSummonerName,
+        summonerSpells: player.summonerSpells,
     }));
     const activeTeam = players.find(p => p.summonerName === window.leagueAssist.activeSummonerName)?.team;
     activePlayerInfoEl.textContent = `${window.leagueAssist.activeSummonerName} ()`;
