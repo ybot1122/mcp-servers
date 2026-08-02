@@ -14,6 +14,8 @@ MODEL_ID = "google/gemma-2-2b-it"
 LOCAL_MODEL_PATH = "./local_model"
 sentinel_file = os.path.join(LOCAL_MODEL_PATH, "config.json")
 
+CURRENT_PATCH_VERSION = '16.15.1'
+
 # Check if model has already been successfully downloaded 
 if os.path.exists(sentinel_file): 
     print(f"Model already exists locally at '{LOCAL_MODEL_PATH}'. Skipping download.") 
@@ -56,7 +58,7 @@ pipe = transformers.pipeline(
 print("Model ready for offline use.")
 
 # Fetch and store item and champion info
-CHAMPION_DATA = requests.get('https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion.json').json()["data"]
+CHAMPION_DATA = requests.get(f'https://ddragon.leagueoflegends.com/cdn/{CURRENT_PATCH_VERSION}/data/en_US/champion.json').json()["data"]
 
 app = Flask(__name__)
 
@@ -83,7 +85,7 @@ def query_deeplore():
         return jsonify({'error': 'Invalid champion name after formatting'}), 400
 
     print(formatted_name)
-    lore_url = 'https://ddragon.leagueoflegends.com/cdn/16.15.1/data/en_US/champion/' + formatted_name + '.json'
+    lore_url = f'https://ddragon.leagueoflegends.com/cdn/{CURRENT_PATCH_VERSION}/data/en_US/champion/{formatted_name}.json'
     print(f"Fetching lore for champion: {formatted_name} from {lore_url}")
     lore = requests.get(lore_url).json()["data"][formatted_name]["lore"]
 

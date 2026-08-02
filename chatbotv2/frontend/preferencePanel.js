@@ -1,7 +1,10 @@
+// TODO: UPDATE ITEM ANNONUCEMENT TOGGLE TO LOOK NONE | ALL | MAJOR
+
 const preferenceButton = document.getElementById('togglePreferencesButton');
 const preferencesPanel = document.getElementById('preferencesPanel');
 const closePreferencesButton = document.getElementById('closePreferencesButton');
 const preferenceToggles = Array.from(document.querySelectorAll('.preference-toggle'));
+const itemAnnouncementsSelect = document.querySelector('.preference-select[data-setting="enableItemAnnouncements"]');
 
 // hook up preference panel show/hide
 if (preferenceButton && preferencesPanel) {
@@ -16,6 +19,13 @@ if (preferenceButton && preferencesPanel) {
             preferencesPanel.classList.add('hide')
         }
 
+    });
+}
+
+if (itemAnnouncementsSelect) {
+    itemAnnouncementsSelect.value = window.leagueAssistSettings.enableItemAnnouncements || 'all';
+    itemAnnouncementsSelect.addEventListener('change', () => {
+        window.leagueAssistSettings.enableItemAnnouncements = itemAnnouncementsSelect.value;
     });
 }
 

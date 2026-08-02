@@ -11,6 +11,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 
+CURRENT_PATCH_VERSION = '16.15.1'
+
 # Native Flask hook to inject CORS headers into every response automatically
 @app.after_request
 def add_cors_headers(response):

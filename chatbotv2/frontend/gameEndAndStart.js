@@ -63,4 +63,5 @@ async function onGameStart(data) {
                 [player.summonerSpells.summonerSpellTwo.displayName]: 'ready',
             };
     });
+    
 }

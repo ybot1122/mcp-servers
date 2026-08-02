@@ -39,7 +39,7 @@ async function updateGame(data) {
 // Announce items that have been purchased
 async function itemPurchases(data) {
 
-    if (!window.leagueAssistSettings.enableItemAnnouncements) {
+    if (window.leagueAssistSettings.enableItemAnnouncements === 'none') {
         return '';
     }
 

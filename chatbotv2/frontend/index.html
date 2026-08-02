@@ -8,7 +8,7 @@
     <script>
         window.leagueAssistSettings = {
             enableHighQualityAdvice: false,
-            enableItemAnnouncements: true,
+            enableItemAnnouncements: 'all',
             enableLore: true,
             enableColorCommentary: true,
         }
@@ -30,7 +30,11 @@
                     </div>
                     <div class="preference-option">
                         <span>Item Announcements</span>
-                        <button type="button" class="preference-toggle is-on" data-setting="enableItemAnnouncements" aria-pressed="false">On</button>
+                        <select class="preference-select" data-setting="enableItemAnnouncements">
+                            <option value="all" selected>All</option>
+                            <option value="none">None</option>
+                            <option value="major">Major</option>
+                        </select>
                     </div>
                     <div class="preference-option">
                         <span>Lore</span>
