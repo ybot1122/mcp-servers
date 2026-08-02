@@ -101,11 +101,18 @@ async function objectiveTimers(data) {
         });
     }
 
+    const myTeam = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName).team;
+
     // Check newEvents to see if any objective was slain, and start a respawn timer
     newEvents.forEach((event) => {
+        const objKillerTeam = data.allPlayers.find((p) => p.riotIdGameName === event.KillerName || p.championName === event.KillerName).team;
+        const narrateTeam = objKillerTeam === myTeam ? 'your team' : 'the enemy team';
         if (event.EventName === 'DragonKill') {
-            const respawnTime = event.DragonType === 'Elder' ? timers['elder_respawn'] : timers['dragon_respawn'];
-            playTextToSpeech(`${event.DragonType} dragon slain! Respawn in ${respawnTime / 60} minutes`, 'af_bella');
+            window.leagueAssist.dragonCount[objKillerTeam] += 1;
+            const respawnTime = event.DragonType === 'Elder' || window.leagueAssist.dragonCount[objKillerTeam] === 4 
+                ? timers['elder_respawn']
+                : timers['dragon_respawn'];
+            playTextToSpeech(`${event.DragonType} dragon slain! That's ${window.leagueAssist.dragonCount[objKillerTeam]} for ${narrateTeam}`, 'af_bella');
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`Dragon will respawn in 1 minute`, 'af_bella');
@@ -114,7 +121,7 @@ async function objectiveTimers(data) {
         }
         if (event.EventName === 'BaronKill') {
             const respawnTime = timers['baron_respawn'];
-            playTextToSpeech(`Baron slain! Respawn in ${respawnTime / 60} minutes`, 'af_bella');
+            playTextToSpeech(`Baron slain by ${narrateTeam}`, 'af_bella');
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
                     playTextToSpeech(`Baron will respawn in 1 minute`, 'af_bella');

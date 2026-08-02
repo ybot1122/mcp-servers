@@ -9,6 +9,10 @@ const gameInitState = {
     lastSpeechTime: Date.now(),
     gameStartHypeDone: false,
     objectiveTimersInitialized: false,
+    dragonCount:{
+        ORDER: 0,
+        CHAOS: 0,
+    }
 }
 
 window.leagueAssist = {...gameInitState}
