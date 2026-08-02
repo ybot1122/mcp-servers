@@ -31,6 +31,7 @@ async function updateGame(data) {
     tts_prompts.then((texts) => {
         texts.forEach((prompt, ind) => {
             if (prompt && prompt.trim().length > 0) {
+                console.log(`Playing TTS for prompt: ${prompt} with voice: ${voices[ind]}`);
                 playTextToSpeech(prompt, voices[ind])
             }
         });
@@ -94,7 +95,7 @@ async function objectiveTimers(data) {
             }
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`);
+                    playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`, 'af_bella');
                 }
             }, (timerLenInSec * 1000));
         });
@@ -104,20 +105,21 @@ async function objectiveTimers(data) {
     newEvents.forEach((event) => {
         if (event.EventName === 'DragonKill') {
             const respawnTime = event.DragonType === 'Elder' ? timers['elder_respawn'] : timers['dragon_respawn'];
-            playTextToSpeech(`${event.DragonType} dragon slain! Respawn in ${respawnTime / 60} minutes`);
+            playTextToSpeech(`${event.DragonType} dragon slain! Respawn in ${respawnTime / 60} minutes`, 'af_bella');
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`Dragon will respawn in 1 minute`);
+                    playTextToSpeech(`Dragon will respawn in 1 minute`, 'af_bella');
                 }
             }, respawnTime * 1000 - (60 * 1000));
         }
         if (event.EventName === 'BaronKill') {
-            playTextToSpeech(`Baron slain! Respawn in ${respawnTime / 60} minutes`);
+            const respawnTime = timers['baron_respawn'];
+            playTextToSpeech(`Baron slain! Respawn in ${respawnTime / 60} minutes`, 'af_bella');
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`Baron will respawn in 1 minute`);
+                    playTextToSpeech(`Baron will respawn in 1 minute`, 'af_bella');
                 }
-            }, timers['baron_respawn'] * 1000 - (60 * 1000));
+            }, respawnTime * 1000 - (60 * 1000));
         }
     });
 
@@ -131,8 +133,8 @@ async function colorCommentary(data) {
             || ev.EventName === "TurretKill")
         );
     const commentary = await Promise.all(events.map(async (event) => {
-        const c1 = data.allPlayers.find((p) => p.summonerName === event.KillerName || p.championName === event.KillerName).championName;
-        const c2 = data.allPlayers.find((p) => p.summonerName === event.VictimName || p.championName === event.VictimName)?.championName;
+        const c1 = data.allPlayers.find((p) => p.riotIdGameName === event.KillerName || p.championName === event.KillerName).championName;
+        const c2 = data.allPlayers.find((p) => p.riotIdGameName === event.VictimName || p.championName === event.VictimName)?.championName;
         const text = (event.EventName === "ChampionKill") ? `${c1} has slain ${c2}` : `${c1} has destroyed a turret`;
         const champs = new Set([c1, c2].filter(Boolean));
         const content = await llmPrompt(
@@ -143,7 +145,6 @@ async function colorCommentary(data) {
         return content;
     }));
 
-    console.log(commentary)
     return commentary.join(' ');
 }
 
@@ -152,7 +153,7 @@ async function multiKillHype(data) {
     const multikillevent = data.new_events.find((ev) => ev.EventName === "Multikill" && ev.KillerName === data.activePlayer.riotIdGameName);
 
     if (multikillevent) {
-        const playerChampion = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName).championName;
+        const playerChampion = data.allPlayers.find((p) => p.riotIdGameName === data.activePlayer.riotIdGameName).championName;
         const streak = multikillevent.KillStreak;
         const text = `${playerChampion} scored a ${streak} kill streak!`;
         const content = await llmPrompt(
