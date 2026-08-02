@@ -12,7 +12,8 @@ const gameInitState = {
     dragonCount:{
         ORDER: 0,
         CHAOS: 0,
-    }
+    },
+    summonerSpells: undefined,
 }
 
 window.leagueAssist = {...gameInitState}
@@ -52,5 +53,11 @@ async function onGameStart(data) {
     console.log('game starting')
     const activePlayer = data.activePlayer ?? {};
     window.leagueAssist.activeSummonerName = activePlayer.riotId
-    
+    window.leagueAssist.summonerSpells = {};
+    data.allPlayers.forEach(player => {
+            window.leagueAssist.summonerSpells[player.riotId] = {
+                [player.summonerSpells.summonerSpellOne.displayName]: 'ready',
+                [player.summonerSpells.summonerSpellTwo.displayName]: 'ready',
+            };
+    });
 }

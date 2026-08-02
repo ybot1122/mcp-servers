@@ -167,7 +167,7 @@ async function multiKillHype(data) {
         }
         
         if (event.EventName === "Multikill") {
-            const playerChampion = data.allPlayers.find((p) => p.riotIdGameName === data.activePlayer.riotIdGameName).championName;
+            const playerChampion = data.allPlayers.find((p) => p.riotIdGameName === event.KillerName).championName;
             const streak = event.KillStreak;
             const text = `${playerChampion} scored a ${streak} kill streak!`;
             const content = await llmPrompt(

@@ -26,11 +26,37 @@ function buildPlayerCard(player) {
     container.style.display = 'inline-flex';
     container.style.gap = '6px';
 
+    const summonerCooldowns = {
+        'Flash': 300,
+        'Teleport': 300,
+        'Ignite': 180,
+        'Barrier': 180,
+        'Heal': 240,
+        'Exhaust': 240,
+        'Ghost': 240,
+        'Cleanse': 240,
+        'Smite': 90,
+    }
+
     if (spellOne) {
         const btn1 = document.createElement('button');
         btn1.type = 'button';
         btn1.className = 'spell-button';
         btn1.textContent = spellOne.displayName || 'Spell 1';
+        btn1.onclick = () => {
+            window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'cooldown';
+            btn1.disabled = true;
+            setTimeout(() => {
+                window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'maybe';
+                btn1.textContent = `${spellOne.displayName} (might be ready)`;
+                btn1.disabled = false;
+            }, (summonerCooldowns[spellOne.displayName] - 30)* 1000);
+            setTimeout(() => {
+                window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'ready';
+                btn1.disabled = false;
+                btn1.textContent = spellOne.displayName;
+            }, summonerCooldowns[spellOne.displayName] * 1000);
+        }
         if (spellOne.id) btn1.dataset.spellId = spellOne.id;
         container.appendChild(btn1);
     }
@@ -40,6 +66,20 @@ function buildPlayerCard(player) {
         btn2.type = 'button';
         btn2.className = 'spell-button';
         btn2.textContent = spellTwo.displayName || 'Spell 2';
+        btn2.onclick = () => {
+            window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'cooldown';
+            btn2.disabled = true;
+            setTimeout(() => {
+                window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'maybe';
+                btn2.textContent = `${spellTwo.displayName} (might be ready)`;
+                btn2.disabled = false;
+            }, (summonerCooldowns[spellTwo.displayName] - 30)* 1000);
+            setTimeout(() => {
+                window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'ready';
+                btn2.disabled = false;
+                btn2.textContent = spellTwo.displayName;
+            }, summonerCooldowns[spellTwo.displayName] * 1000);
+        }
         if (spellTwo.id) btn2.dataset.spellId = spellTwo.id;
         container.appendChild(btn2);
     }

@@ -83,14 +83,6 @@
             box-shadow: 0 0 0 1px rgba(79, 123, 255, 0.14);
         }
 
-        .player-card.self strong::after {
-            content: " · You";
-            color: #7f9ac4;
-            font-size: 0.82rem;
-            font-weight: 400;
-            margin-left: 8px;
-        }
-
         .team-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
