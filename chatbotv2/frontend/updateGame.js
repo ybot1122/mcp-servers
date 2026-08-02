@@ -7,7 +7,6 @@ async function updateGame(data) {
         updatePlayerCards(data),
         periodicGameAdvice(data),
         itemPurchases(data),
-        deathAnalysis(data),
         multiKillHype(data),
         loreMaster(data),
         gameStartHype(data),
@@ -20,7 +19,6 @@ async function updateGame(data) {
         'am_eric',
         'am_eric',
         'af_bella',
-        'hype',
         'hype',
         'bm_george',
         'hype',
@@ -196,48 +194,6 @@ async function multiKillHype(data) {
     return results.join(' ');
 }
 
-
-// Whenever the active player dies, give some commentary based on game state
-async function deathAnalysis(data) {
-    const deathEvent = data.new_events.find((ev) => ev.EventName === "ChampionKill" && ev.VictimName === data.activePlayer.riotIdGameName);
-
-    if (deathEvent) {
-        const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
-        const killer = data.allPlayers.find((p) => p.riotIdGameName === deathEvent.KillerName || p.championName === deathEvent.KillerName);
-
-        // Fallback check in case the killer is a minion, monster, or turret
-        if (!killer) {
-            return "You were executed by a non-champion source!";
-        }
-
-        const playerChampion = player.championName;
-        const killerChampion = killer.championName;
-        const playerRole = player.position;
-        const killerRole = killer.position; 
-        const champs = new Set([playerChampion, killerChampion]);
-
-        const {deaths, kills, assists} = player.scores;
-        const {deaths: killer_deaths, kills: killer_kills, assists: killer_assists} = killer.scores;
-
-        // Calculate current performance metrics
-        const kda = deaths === 0 ? (kills + assists) : (kills + assists) / deaths;
-        let baseText = "";
-        let roleText = "";
-
-        const text = `${playerChampion} died to ${killerChampion}. Player now has ${deaths} deaths.`
-
-        const content = await llmPrompt(
-            "The player died in League of Legends. Write a playful sentence. Return only the final text, with no options or explanations.",
-            text,
-            champs
-        );
-
-        return '[sarcastic]' + content;
-    }
-    
-    return '';
-}
-
 async function gameStartHype(data) {
     const player = data.allPlayers.find((p) => p.summonerName === data.activePlayer.summonerName);
     const playerChampion = player.championName;
@@ -282,20 +238,21 @@ async function loreMaster(data) {
         return;
     }
 
-    if (window.leagueAssist.nextLoreInd >= data.allPlayers.length) {
+    if (window.leagueAssist.nextLoreInd.length === 0) {
         return;
     }
 
     if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 180000 && data.gameData.gameTime > 180) {
         window.leagueAssist.lastLore = Date.now();
-        const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(data.allPlayers[window.leagueAssist.nextLoreInd].championName)}`, {
+        const nextInd = window.leagueAssist.nextLoreInd.shift();
+        const champion = data.allPlayers[nextInd].championName;
+        const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(champion)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
         const r = await content.json();
-        window.leagueAssist.nextLoreInd += 1
         return r.response;
     }
     return '';

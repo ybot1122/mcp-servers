@@ -16,8 +16,6 @@ function buildPlayerCard(player) {
 
     const spellsLine = document.createElement('div');
     spellsLine.className = 'player-line';
-    const spellOne = player.summonerSpells.summonerSpellOne;
-    const spellTwo = player.summonerSpells.summonerSpellTwo;
 
     const label = document.createElement('span');
     label.textContent = 'Summoner Spells';
@@ -36,57 +34,56 @@ function buildPlayerCard(player) {
         'Ghost': 240,
         'Cleanse': 240,
         'Smite': 90,
-    }
+    };
 
-    if (spellOne) {
-        const btn1 = document.createElement('button');
-        btn1.type = 'button';
-        btn1.className = 'spell-button';
-        btn1.textContent = spellOne.displayName || 'Spell 1';
-        btn1.onclick = () => {
-            console.log(`Clicked ${spellOne.displayName} for ${player.riotId}`);
-            playTextToSpeech(`${player.championName} used ${spellOne.displayName}, cooldown set to ${summonerCooldowns[spellOne.displayName]} seconds.`, 'af_bella');
-            window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'cooldown';
-            btn1.disabled = true;
+    const createSpellButton = (spell) => {
+        if (!spell) return null;
+
+        const spellName = spell.displayName || 'Spell';
+        const cooldownSeconds = summonerCooldowns[spellName] ?? 0;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'spell-button';
+        button.textContent = spellName;
+
+        button.onclick = () => {
+            const playerSpells = window.leagueAssist?.summonerSpells?.[player.riotId];
+            if (playerSpells) {
+                playerSpells[spellName] = 'cooldown';
+            }
+
+            playTextToSpeech(`${player.championName} used ${spellName}, cooldown set to ${cooldownSeconds} seconds.`, 'af_bella');
+
+            button.disabled = true;
+
+            const maybeDelay = (cooldownSeconds - 30) * 1000;
             setTimeout(() => {
-                window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'maybe';
-                btn1.textContent = `${spellOne.displayName} (might be ready)`;
-                btn1.disabled = false;
-            }, (summonerCooldowns[spellOne.displayName] - 30)* 1000);
+                playerSpells[spellName] = 'maybe';
+                button.textContent = `${spellName} (might be ready)`;
+                button.disabled = false;
+                playTextToSpeech(`${player.championName} ${spellName} might be ready.`, 'af_bella');
+            }, maybeDelay);
+
             setTimeout(() => {
-                window.leagueAssist.summonerSpells[player.riotId][spellOne.displayName] = 'ready';
-                btn1.disabled = false;
-                btn1.textContent = spellOne.displayName;
-            }, summonerCooldowns[spellOne.displayName] * 1000);
+                if (playerSpells) {
+                    playerSpells[spellName] = 'ready';
+                }
+                button.textContent = spellName;
+            }, cooldownSeconds * 1000);
+        };
+
+        return button;
+    };
+
+    const spells = [player.summonerSpells.summonerSpellOne, player.summonerSpells.summonerSpellTwo];
+    spells.forEach((spell, index) => {
+        const button = createSpellButton(spell, index === 0);
+        if (button) {
+            container.appendChild(button);
         }
-        if (spellOne.id) btn1.dataset.spellId = spellOne.id;
-        container.appendChild(btn1);
-    }
+    });
 
-    if (spellTwo) {
-        const btn2 = document.createElement('button');
-        btn2.type = 'button';
-        btn2.className = 'spell-button';
-        btn2.textContent = spellTwo.displayName || 'Spell 2';
-        btn2.onclick = () => {
-            window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'cooldown';
-            btn2.disabled = true;
-            setTimeout(() => {
-                window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'maybe';
-                btn2.textContent = `${spellTwo.displayName} (might be ready)`;
-                btn2.disabled = false;
-            }, (summonerCooldowns[spellTwo.displayName] - 30)* 1000);
-            setTimeout(() => {
-                window.leagueAssist.summonerSpells[player.riotId][spellTwo.displayName] = 'ready';
-                btn2.disabled = false;
-                btn2.textContent = spellTwo.displayName;
-            }, summonerCooldowns[spellTwo.displayName] * 1000);
-        }
-        if (spellTwo.id) btn2.dataset.spellId = spellTwo.id;
-        container.appendChild(btn2);
-    }
-
-    if (!spellOne && !spellTwo) {
+    if (!spells.some(Boolean)) {
         container.textContent = 'None';
     }
 

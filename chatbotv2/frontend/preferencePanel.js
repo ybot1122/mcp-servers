@@ -35,6 +35,3 @@ preferenceToggles.forEach((toggle) => {
         toggle.textContent = (current) ? 'Off' : 'On'
     });
 });
-
-window.enableHighQualityAdvice = settings.enableHighQualityAdvice;
-syncPreferencePanel();

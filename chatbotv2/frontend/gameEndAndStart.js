@@ -1,11 +1,14 @@
 
+const randomNumbers = Array.from({ length: 10 }, (_, i) => i)
+                           .sort(() => Math.random() - 0.5);
+
 const gameInitState = {
     activeSummonerName: null,
     lastHype: 30,
     loadingScreenOverviewDone: false,
     activePlayer: null,
     lastLore: Date.now(),
-    nextLoreInd: 0,
+    nextLoreInd: [...randomNumbers],
     lastSpeechTime: Date.now(),
     gameStartHypeDone: false,
     objectiveTimersInitialized: false,
