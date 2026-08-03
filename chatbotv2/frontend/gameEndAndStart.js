@@ -7,9 +7,9 @@ const gameInitState = {
     lastHype: 30,
     loadingScreenOverviewDone: false,
     activePlayer: null,
-    lastLore: Date.now(),
+    lastLore: 0,
     nextLoreInd: [...randomNumbers],
-    lastSpeechTime: Date.now(),
+    lastSpeechTime: 0,
     gameStartHypeDone: false,
     objectiveTimersInitialized: false,
     dragonCount:{

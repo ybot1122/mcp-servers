@@ -246,8 +246,10 @@ async function loreMaster(data) {
         return;
     }
 
-    if (Date.now() - window.leagueAssist.lastSpeechTime > 30000 && Date.now() - window.leagueAssist.lastLore > 180000 && data.gameData.gameTime > 180) {
-        window.leagueAssist.lastLore = Date.now();
+    const now = Date.now();
+    const {lastSpeechTime, lastLore} = window.leagueAssist;
+    if (now - lastSpeechTime > 30000 && now - lastLore > 90000 && data.gameData.gameTime > 180) {
+        window.leagueAssist.lastLore = now;
         const nextInd = window.leagueAssist.nextLoreInd.shift();
         const champion = data.allPlayers[nextInd].championName;
         const content = await fetch(`http://127.0.0.1:5002/deeplore?champions=${encodeURIComponent(champion)}`, {

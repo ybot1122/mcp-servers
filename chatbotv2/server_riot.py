@@ -13,6 +13,8 @@ app = Flask(__name__)
 
 CURRENT_PATCH_VERSION = '16.15.1'
 
+ITEMS_DATA = requests.get(f'https://ddragon.leagueoflegends.com/cdn/{CURRENT_PATCH_VERSION}/data/en_US/item.json').json()["data"]
+
 # Native Flask hook to inject CORS headers into every response automatically
 @app.after_request
 def add_cors_headers(response):
