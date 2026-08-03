@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <script>
         window.leagueAssistSettings = {
-            enableHighQualityAdvice: false,
+            enableGameAdvice: 'free',
             enableItemAnnouncements: 'all',
             enableLore: true,
             enableColorCommentary: true,
@@ -25,8 +25,12 @@
                 <button id="togglePreferencesButton" type="button" aria-expanded="false" aria-controls="preferencesPanel">Set Preference</button>
                 <div id="preferencesPanel" class="preferences-panel hide" hidden>
                     <div class="preference-option">
-                        <span>High quality advice</span>
-                        <button type="button" class="preference-toggle" data-setting="enableHighQualityAdvice" aria-pressed="false">Off</button>
+                        <span>Game Advice</span>
+                        <select class="preference-select" data-setting="enableGameAdvice">
+                            <option value="free" selected>Free</option>
+                            <option value="none">None</option>
+                            <option value="enhanced">Enhanced</option>
+                        </select>
                     </div>
                     <div class="preference-option">
                         <span>Item Announcements</span>

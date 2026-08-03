@@ -5,6 +5,7 @@ const preferencesPanel = document.getElementById('preferencesPanel');
 const closePreferencesButton = document.getElementById('closePreferencesButton');
 const preferenceToggles = Array.from(document.querySelectorAll('.preference-toggle'));
 const itemAnnouncementsSelect = document.querySelector('.preference-select[data-setting="enableItemAnnouncements"]');
+const gameAdviceSelect = document.querySelector('.preference-select[data-setting="enableGameAdvice"]');
 
 // hook up preference panel show/hide
 if (preferenceButton && preferencesPanel) {
@@ -23,11 +24,19 @@ if (preferenceButton && preferencesPanel) {
 }
 
 if (itemAnnouncementsSelect) {
-    itemAnnouncementsSelect.value = window.leagueAssistSettings.enableItemAnnouncements || 'all';
+    itemAnnouncementsSelect.value = window.leagueAssistSettings.enableItemAnnouncements;
     itemAnnouncementsSelect.addEventListener('change', () => {
         window.leagueAssistSettings.enableItemAnnouncements = itemAnnouncementsSelect.value;
     });
 }
+
+if (gameAdviceSelect) {
+    gameAdviceSelect.value = window.leagueAssistSettings.enableGameAdvice;
+    gameAdviceSelect.addEventListener('change', () => {
+        window.leagueAssistSettings.enableGameAdvice = gameAdviceSelect.value;
+    });
+}
+
 
 // update onclick for each toggle
 preferenceToggles.forEach((toggle) => {
