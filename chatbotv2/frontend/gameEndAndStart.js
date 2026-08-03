@@ -38,12 +38,8 @@ async function onGameEnded() {
         const champions = new Set();
         champions.add(selfParticipant.championName);
         document.getElementById("game-summary").textContent = message;
-        const teamAEl = document.getElementById('teamA');
-        const teamBEl = document.getElementById('teamB');
-        teamAEl.innerHTML = '';
-        teamBEl.innerHTML = '';
         const stylized = await llmPrompt("This is a League of Legends game summary. Make this sentence more interesting. Output just the sentence.", message, champions)
-        await playTextToSpeech(message);
+        await playTextToSpeech(stylized, 'af_bella');
     } catch (error) {
         console.error(error)
     }

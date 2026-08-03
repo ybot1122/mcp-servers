@@ -38,15 +38,18 @@ async function updateGame(data) {
 // Announce items that have been purchased
 async function itemPurchases(data) {
 
-    if (window.leagueAssistSettings.enableItemAnnouncements === 'none') {
+    const setting = window.leagueAssistSettings.enableItemAnnouncements;
+    if (setting === 'none') {
         return '';
     }
 
     const diff = data.diff;
     let itemsUpdateMessage = '';
     Object.keys(diff).forEach(key => {
-        if (diff[key].length > 0) {
-            itemsUpdateMessage += `${key} bought ${diff[key].join(', ')}. `;
+        const items = diff[key].filter((i) => (setting === 'major') ? i.total_price > 1200 : true).map((i) => i.name)
+
+        if (items.length > 0) {
+            itemsUpdateMessage += `${key} bought ${items.join(', ')}. `;
         }
     });
 

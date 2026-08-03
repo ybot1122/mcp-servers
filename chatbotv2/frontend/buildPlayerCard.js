@@ -11,6 +11,21 @@ const summonerCooldowns = {
     'Mark': 80,
 };
 
+const summonerIcon = {
+    'Flash': 'SummonerFlash.png',
+    'Teleport': 'SummonerTeleport.png',
+    'Unleashed Teleport': 'SummonerTeleport.png',
+    'Ignite': 'SummonerDot.png',
+    'Barrier': 'SummonerBarrier.png',
+    'Heal': 'SummonerHeal.png',
+    'Exhaust': 'SummonerExhaust.png',
+    'Ghost': 'SummonerHaste.png',
+    'Cleanse': 'SummonerCleanse.png',
+    'Smite': 'SummonerSmite.png',
+    'Primal Smite': 'SummonerSmite.png',
+    'Mark': '981.png',
+}
+
 const spellButtonCache = new Map();
 
 function createSpellButton(player, spell) {
@@ -27,11 +42,20 @@ function createSpellButton(player, spell) {
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'spell-button';
-    button.textContent = spellName;
+    button.className = 'spell-button summoner-spell-button';
     button.dataset.spellId = spell.id || '';
     button.dataset.riotId = player.riotId || '';
     button.dataset.championName = player.championName || '';
+
+    const label = document.createElement('span');
+    label.className = 'summoner-spell-label';
+    label.textContent = spellName;
+
+    const icon = document.createElement('img');
+    icon.className = 'summoner-spell-icon';
+    icon.alt = spellName;
+    icon.src = `https://ddragon.leagueoflegends.com/cdn/16.15.1/img/spell/${summonerIcon[spellName]}`;
+    button.append(label, icon);
 
     button.onclick = () => {
         const playerSpells = window.leagueAssist?.summonerSpells?.[button.dataset.riotId];
@@ -50,7 +74,10 @@ function createSpellButton(player, spell) {
             if (playerSpells) {
                 playerSpells[spellName] = 'maybe';
             }
-            button.textContent = `${spellName} (might be ready)`;
+            const label = button.querySelector('.summoner-spell-label');
+            if (label) {
+                label.textContent = `${spellName} (might be ready)`;
+            }
             button.disabled = false;
             playTextToSpeech(`${championName} ${spellName} might be ready.`, 'af_bella');
         }, maybeDelay);
@@ -59,7 +86,10 @@ function createSpellButton(player, spell) {
             if (playerSpells) {
                 playerSpells[spellName] = 'ready';
             }
-            button.textContent = spellName;
+            const label = button.querySelector('.summoner-spell-label');
+            if (label) {
+                label.textContent = spellName;
+            }
             button.disabled = false;
         }, cooldownSeconds * 1000);
     };
@@ -72,27 +102,28 @@ function buildPlayerCard(player) {
     const card = document.createElement('section');
     card.className = 'player-card';
 
-    const nameLine = document.createElement('div');
-    nameLine.className = 'player-line';
-    nameLine.innerHTML = `<strong>${player.championName}</strong><span>${player.summonerName}</span>`;
-
-    const kdaLine = document.createElement('div');
-    kdaLine.className = 'player-line';
-    kdaLine.innerHTML = `<span>KDA</span><strong>${player.kills}/${player.deaths}/${player.assists}</strong>`;
-
-    const positionLine = document.createElement('div');
-    positionLine.className = 'player-line';
-    positionLine.innerHTML = `<span>Role</span><strong>${player.position}</strong>`;
+    const firstRow = document.createElement('div');
+    firstRow.className = 'player-line player-line-top';
+    firstRow.innerHTML = `
+        <div class="player-name-block">
+            <strong>${player.championName}</strong>
+            <span>${player.summonerName}</span>
+        </div>
+        <div class="player-stats-block">
+            <span>KDA</span>
+            <strong>${player.kills}/${player.deaths}/${player.assists}</strong>
+        </div>
+        <div class="player-role-block">
+            <span>Role</span>
+            <strong>${player.position}</strong>
+        </div>
+    `;
 
     const spellsLine = document.createElement('div');
-    spellsLine.className = 'player-line';
-
-    const label = document.createElement('span');
-    label.textContent = 'Summoner Spells';
+    spellsLine.className = 'player-line player-line-spells';
 
     const container = document.createElement('div');
-    container.style.display = 'inline-flex';
-    container.style.gap = '6px';
+    container.className = 'summoner-spell-container';
 
     const spells = [player.summonerSpells.summonerSpellOne, player.summonerSpells.summonerSpellTwo];
     spells.forEach((spell) => {
@@ -106,17 +137,16 @@ function buildPlayerCard(player) {
         container.textContent = 'None';
     }
 
-    const strong = document.createElement('strong');
-    strong.appendChild(container);
+    spellsLine.appendChild(container);
 
-    spellsLine.append(label, strong);
-
+    /*
     const itemsMeta = document.createElement('div');
-    itemsMeta.className = 'player-meta';
+    itemsMeta.className = 'player-meta player-meta-row';
     itemsMeta.innerHTML = `
         <div><span>Items</span><strong>${player.items || 'None'}</strong></div>
     `;
+    */
 
-    card.append(nameLine, kdaLine, positionLine, spellsLine, itemsMeta);
+    card.append(firstRow, spellsLine);
     return card;
 }

@@ -4,6 +4,7 @@ import random
 import torch
 import transformers
 import json
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from flask import Flask, request, jsonify
 from google import genai
 import requests
@@ -57,6 +58,17 @@ pipe = transformers.pipeline(
 
 print("Model ready for offline use.")
 
+llm_executor = ThreadPoolExecutor(max_workers=2)
+
+
+def run_model_inference(messages, max_new_tokens=256, timeout_seconds=5):
+    future = llm_executor.submit(pipe, messages, max_new_tokens=max_new_tokens)
+    try:
+        return future.result(timeout=timeout_seconds)
+    except TimeoutError:
+        future.cancel()
+        raise TimeoutError("LLM request timed out after 5 seconds")
+
 # Fetch and store item and champion info
 CHAMPION_DATA = requests.get(f'https://ddragon.leagueoflegends.com/cdn/{CURRENT_PATCH_VERSION}/data/en_US/champion.json').json()["data"]
 
@@ -94,14 +106,19 @@ def query_deeplore():
 
     prompt_with_context = "Summarize this League of Legends champion lore in 3 sentences max: " + lore
 
-    messages = [{"role": "user", "content": prompt_with_context}] 
-    outputs = pipe(messages, max_new_tokens=256)
-    generated_text = outputs[0]["generated_text"][-1]["content"].strip()
+    try:
+        messages = [{"role": "user", "content": prompt_with_context}] 
+        outputs = run_model_inference(messages, max_new_tokens=256, timeout_seconds=15)
+        generated_text = outputs[0]["generated_text"][-1]["content"].strip()
 
-    return jsonify({
-        'champion': formatted_name,
-        'response': generated_text
-    })
+        return jsonify({
+            'champion': formatted_name,
+            'response': generated_text
+        })
+    except TimeoutError:
+        return jsonify({'error': 'LLM request timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Failed to process LLM request: {str(e)}'}), 500
 
 
 @app.route('/llm', methods=['GET'])
@@ -124,12 +141,10 @@ def query_llm():
 
     prompt_with_context = champion_context + ". " + user_query
 
-    print(prompt_with_context)
-
     try:
         start_time = time.perf_counter()
         messages = [{"role": "user", "content": prompt_with_context}] 
-        outputs = pipe(messages, max_new_tokens=256)
+        outputs = run_model_inference(messages, max_new_tokens=256, timeout_seconds=5)
         generated_text = outputs[0]["generated_text"][-1]["content"].strip()
 
         print(generated_text)
@@ -140,6 +155,8 @@ def query_llm():
             'model': LOCAL_MODEL_PATH,
             'duration': time.perf_counter() - start_time
         })
+    except TimeoutError:
+        return jsonify({'error': 'LLM request timed out'}), 500
     except Exception as e:
         return jsonify({'error': f'Failed to process LLM request: {str(e)}'}), 500
 

@@ -100,83 +100,36 @@ def get_new_items_live_api(newState):
     the previous state. The result is grouped by champion name.
     """
 
-    current_time = newState.get("gameData").get("gameTime")
-    if current_time <= 90:
-        return {}
-
     if GLOBAL_CACHE["last_live_state"] is None:
         return {}
+
+    result = {}
+    lastAllPlayers = GLOBAL_CACHE["last_live_state"].get("allPlayers")
+    currAllPlayers = newState.get("allPlayers")
+    for index, player in enumerate(lastAllPlayers):
+       championName = player.get("championName")
+       prevItems = player.get("items")
+       currItems = currAllPlayers[index].get("items")
+       counts = Counter(i["itemID"] for i in prevItems)
+       diff = []
+       for i in currItems:
+          if i["itemID"] not in counts:
+             diff.append(i["itemID"])
+          else:
+            counts[i["itemID"]] = counts.get(i["itemID"], 0) - 1
+            if (counts.get(i["itemID"]) < 0):
+                diff.append(i["itemID"])
+
+       for index, x in enumerate(diff):
+         item = ITEMS_DATA[str(x)]
+         diff[index] = {
+            "name": item["name"],
+            "base_price": item["gold"]["base"],
+            "total_price": item["gold"]["total"],
+         }
+       result[championName] = diff      
     
-    # 1. Build an ID-to-Name mapping dynamically from both states if not provided
-    item_lookup = {}
-    for state in (GLOBAL_CACHE["last_live_state"], newState):
-        if not state:
-            continue
-        for player in state.get("allPlayers") or []:
-            if not player:
-                continue
-            for item in player.get("items") or []:
-                if not item:
-                    continue
-                i_id = item.get("itemID")
-                i_name = item.get("displayName")
-                if i_id is not None and i_name:
-                    item_lookup[i_id] = i_name
-
-    def get_player_inventories(state_payload):
-        inventories = {}
-        if state_payload is None:
-            return inventories
-            
-        players = state_payload.get("allPlayers")
-        if not players:
-            return inventories
-            
-        for player in players:
-            if player is None:
-                continue
-            champion_name = player.get("championName")
-            if not champion_name:
-                continue
-                
-            item_counts = Counter()
-            for item in player.get("items") or []:
-                if item is None:
-                    continue
-                item_id = item.get("itemID")
-                if item_id is None:
-                    continue
-                count = item.get("count", 1)
-                item_counts[item_id] += count
-                
-            inventories[champion_name] = item_counts
-        return inventories
-
-    old_inventories = get_player_inventories(GLOBAL_CACHE["last_live_state"])
-    current_inventories = get_player_inventories(newState)
-    
-    new_items = {}
-    for champion_name, current_counts in current_inventories.items():
-        old_counts = old_inventories.get(champion_name, Counter())
-        new_entries = []
-        
-        for item_id, current_qty in current_counts.items():
-            previous_qty = old_counts.get(item_id, 0)
-            if current_qty > previous_qty:
-                new_entries.extend([item_id] * (current_qty - previous_qty))
-                
-        if new_entries:
-            new_items[champion_name] = new_entries
-
-    # 2. Map the calculated itemIds back to their displayName string
-    resolved_items = {}
-    for champion_name, item_ids in new_items.items():
-        resolved_items[champion_name] = [
-            item_lookup.get(item_id, f"Unknown Item ({item_id})") 
-            for item_id in item_ids
-        ]
-        
-    return resolved_items
+    return result
 
 
 @app.route("/liveclientdata/allgamedata", methods=["GET"])
