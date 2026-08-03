@@ -8,6 +8,7 @@ const summonerCooldowns = {
     'Ghost': 240,
     'Cleanse': 240,
     'Smite': 90,
+    'Mark': 80,
 };
 
 const spellButtonCache = new Map();

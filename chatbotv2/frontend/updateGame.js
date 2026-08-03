@@ -29,7 +29,6 @@ async function updateGame(data) {
     tts_prompts.then((texts) => {
         texts.forEach((prompt, ind) => {
             if (prompt && prompt.trim().length > 0) {
-                console.log(`Playing TTS for prompt: ${prompt} with voice: ${voices[ind]}`);
                 playTextToSpeech(prompt, voices[ind])
             }
         });
@@ -163,6 +162,11 @@ async function colorCommentary(data) {
 
 // If player scores a multi kill, give some hype commentary
 async function multiKillHype(data) {
+
+    if (!window.leagueAssistSettings.enableColorCommentary) {
+        return '';
+    }
+
     const ev = data.new_events.filter((ev) => ev.EventName === "Multikill" | ev.EventName === "Ace").map(async (event) => {
         const myTeam = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName).team;
         if (event.EventName === "Ace") {
