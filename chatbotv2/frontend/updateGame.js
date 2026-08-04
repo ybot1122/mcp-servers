@@ -1,3 +1,27 @@
+const UPDATER = {
+    LOADING_SCREEN_OVERVIEW: 'LOADING_SCREEN_OVERVIEW',
+    ITEM_PURCHASES: 'ITEM_PURCHASES',
+    PERIODIC_GAME_ADVICE: 'PERIODIC_GAME_ADVICE',
+    OBJECTIVE_TIMERS: 'OBJECTIVE_TIMERS',
+    COLOR_COMMENTARY: 'COLOR_COMMENTARY',
+    MULTI_KILL_HYPE: 'MULTI_KILL_HYPE',
+    GAME_START_HYPE: 'GAME_START_HYPE',
+    LORE_MASTER: 'LORE_MASTER',
+    UPDATE_PLAYER_CARDS: 'UPDATE_PLAYER_CARDS',
+}
+
+const VOICES ={
+    LOADING_SCREEN_OVERVIEW: 'am_eric',
+    ITEM_PURCHASES: 'af_bella',
+    PERIODIC_GAME_ADVICE: 'am_eric',
+    OBJECTIVE_TIMERS: 'af_bella',
+    COLOR_COMMENTARY: 'hype',
+    MULTI_KILL_HYPE: 'hype',
+    GAME_START_HYPE: 'hype',
+    LORE_MASTER: 'bm_george',
+    UPDATE_PLAYER_CARDS: 'am_eric',
+}
+
 async function updateGame(data) {
 
     console.log(data);
@@ -14,22 +38,10 @@ async function updateGame(data) {
         colorCommentary(data),
     ])
 
-    const voices = [
-        'am_eric',
-        'am_eric',
-        'am_eric',
-        'af_bella',
-        'hype',
-        'bm_george',
-        'hype',
-        'af_bella',
-        'hype',
-    ]
-
     tts_prompts.then((texts) => {
-        texts.forEach((prompt, ind) => {
+        texts.forEach(([prompt, voice, updater], ind) => {
             if (prompt && prompt.trim().length > 0) {
-                playTextToSpeech(prompt, voices[ind])
+                playTextToSpeech(prompt, voice, updater)
             }
         });
     });
@@ -37,10 +49,9 @@ async function updateGame(data) {
 
 // Announce items that have been purchased
 async function itemPurchases(data) {
-
     const setting = window.leagueAssistSettings.enableItemAnnouncements;
     if (setting === 'none') {
-        return '';
+        return ['', VOICES.ITEM_PURCHASES, UPDATER.ITEM_PURCHASES];
     }
 
     const diff = data.diff;
@@ -54,23 +65,27 @@ async function itemPurchases(data) {
     });
 
     if (!itemsUpdateMessage) {
-        return '';
+        return ['', VOICES.ITEM_PURCHASES, UPDATER.ITEM_PURCHASES];
     }
 
-    return itemsUpdateMessage
+    return [itemsUpdateMessage, VOICES.ITEM_PURCHASES, UPDATER.ITEM_PURCHASES];
 }
 
 // Every 300 seconds, feed AI game overview and ask for advice
 async function periodicGameAdvice(data) {
+   if (window.leagueAssistSettings.enableGameAdvice === 'none') {
+        return ['', VOICES.PERIODIC_GAME_ADVICE, UPDATER.PERIODIC_GAME_ADVICE];
+   }
+
     const time = data.gameData.gameTime
     const message = data.prompt;
     if (time - window.leagueAssist.lastHype > 300) {
         window.leagueAssist.lastHype = time;
         const prompt = await askGameAdvice(data.prompt);
-        return prompt;
+        return [prompt, VOICES.PERIODIC_GAME_ADVICE, UPDATER.PERIODIC_GAME_ADVICE];
     }
 
-    return '';
+    return ['', VOICES.PERIODIC_GAME_ADVICE, UPDATER.PERIODIC_GAME_ADVICE];
 }
 
 // TODO add warnings for early gank timers (lvl 2 gank 1:15, lvl 3 gank 1:55, lvl 4 gank 2:55)
@@ -100,7 +115,7 @@ async function objectiveTimers(data) {
             }
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`, 'af_bella');
+                    playTextToSpeech(`${objective.replace('first_', '').replace('_', ' ')} will spawn in 1 minute`, VOICES.OBJECTIVE_TIMERS);
                 }
             }, (timerLenInSec * 1000));
         });
@@ -117,32 +132,32 @@ async function objectiveTimers(data) {
             const respawnTime = event.DragonType === 'Elder' || window.leagueAssist.dragonCount[objKillerTeam] === 4 
                 ? timers['elder_respawn']
                 : timers['dragon_respawn'];
-            playTextToSpeech(`${event.DragonType} dragon slain! That's ${window.leagueAssist.dragonCount[objKillerTeam]} for ${narrateTeam}`, 'af_bella');
+            playTextToSpeech(`${event.DragonType} dragon slain! That's ${window.leagueAssist.dragonCount[objKillerTeam]} for ${narrateTeam}`, VOICES.OBJECTIVE_TIMERS);
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`Dragon will respawn in 1 minute`, 'af_bella');
+                    playTextToSpeech(`Dragon will respawn in 1 minute`, VOICES.OBJECTIVE_TIMERS);
                 }
             }, respawnTime * 1000 - (60 * 1000));
         }
         if (event.EventName === 'BaronKill') {
             const respawnTime = timers['baron_respawn'];
-            playTextToSpeech(`Baron slain by ${narrateTeam}`, 'af_bella');
+            playTextToSpeech(`Baron slain by ${narrateTeam}`, VOICES.OBJECTIVE_TIMERS);
             setTimeout(() => {
                 if (window.leagueAssist.activeSummonerName) {
-                    playTextToSpeech(`Baron will respawn in 1 minute`, 'af_bella');
+                    playTextToSpeech(`Baron will respawn in 1 minute`, VOICES.OBJECTIVE_TIMERS);
                 }
             }, respawnTime * 1000 - (60 * 1000));
         }
     });
 
-    return '';
+    return ['', VOICES.OBJECTIVE_TIMERS, UPDATER.OBJECTIVE_TIMERS];
 }
 
 // generate color commentary for kills, inhib, turrets
 async function colorCommentary(data) {
 
     if (!window.leagueAssistSettings.enableColorCommentary) {
-        return '';
+        return ['', VOICES.COLOR_COMMENTARY, UPDATER.COLOR_COMMENTARY];
     }
 
     const events = data.new_events.filter((ev) => 
@@ -159,15 +174,14 @@ async function colorCommentary(data) {
         );
         return content;
     }));
-
-    return commentary.join(' ');
+    return [commentary.join(' '), VOICES.COLOR_COMMENTARY, UPDATER.COLOR_COMMENTARY];
 }
 
 // If player scores a multi kill, give some hype commentary
 async function multiKillHype(data) {
 
     if (!window.leagueAssistSettings.enableColorCommentary) {
-        return '';
+        return ['', VOICES.MULTI_KILL_HYPE, UPDATER.MULTI_KILL_HYPE];
     }
 
     const ev = data.new_events.filter((ev) => ev.EventName === "Multikill" | ev.EventName === "Ace").map(async (event) => {
@@ -198,7 +212,7 @@ async function multiKillHype(data) {
     });
 
     const results = await Promise.all(ev);
-    return results.join(' ');
+    return [results.join(' '), VOICES.MULTI_KILL_HYPE, UPDATER.MULTI_KILL_HYPE];
 }
 
 async function gameStartHype(data) {
@@ -206,18 +220,19 @@ async function gameStartHype(data) {
     const playerChampion = player.championName;
 
     if (window.leagueAssist.gameStartHypeDone) {
-        return '';
+        return  ['', VOICES.GAME_START_HYPE, UPDATER.GAME_START_HYPE];
     }
 
     if (data.gameData.gameTime > 5 && data.gameData.gameTime < 20) {
         window.leagueAssist.gameStartHypeDone = true;
 
         const text = await llmPrompt('The game has started in League of Legends. Write a hype sentence to encourage the player. Return only the final text, with no options or explanations.', `The player is playing ${playerChampion}.`, new Set([playerChampion]));
-        
-        return '[excited]' + text + ' [confident] I believe in you ' + playerChampion + '!';
+
+        const msg = '[excited]' + text + ' [confident] I believe in you ' + playerChampion + '!';
+        return  [msg, VOICES.GAME_START_HYPE, UPDATER.GAME_START_HYPE];
     }
 
-    return '';
+    return  ['', VOICES.GAME_START_HYPE, UPDATER.GAME_START_HYPE];
 }
 
 // One-time advice to give during loading screen
@@ -226,27 +241,26 @@ async function doLoadingScreenOverview(data) {
         window.leagueAssist.loadingScreenOverviewDone = true;
         const {championName: myChamp, position: myRole, team: myTeam} = data.allPlayers.find((p) => p.riotId === window.leagueAssist.activeSummonerName);
         if (myRole === "NONE") {
-            return 'Good luck and have fun!'
+            return  ['Good luck and have fun!', VOICES.LOADING_SCREEN_OVERVIEW, UPDATER.LOADING_SCREEN_OVERVIEW];
         }
 
         const {championName: myOpp} = data.allPlayers.find((p) => p.position === myRole && p.team !== myTeam)
         const prompt = `I am playing ${myChamp} and my role opponent is ${myOpp}. Give me advice to win this matchup.`
         const advice = await askGameAdvice(prompt)
-        return advice;
+        return  [advice, VOICES.LOADING_SCREEN_OVERVIEW, UPDATER.LOADING_SCREEN_OVERVIEW];
     }
-    return '';
+    return  ['', VOICES.LOADING_SCREEN_OVERVIEW, UPDATER.LOADING_SCREEN_OVERVIEW];
 }
 
 // detects if there hasn't been any speech in a while
 // then gives some lore about one of the champions in the game
 async function loreMaster(data) {
-
     if (!window.leagueAssistSettings.enableLore) {
-        return;
+        return ['', VOICES.LORE_MASTER, UPDATER.LORE_MASTER];
     }
 
     if (window.leagueAssist.nextLoreInd.length === 0) {
-        return;
+        return ['', VOICES.LORE_MASTER, UPDATER.LORE_MASTER];
     }
 
     const now = Date.now();
@@ -262,9 +276,9 @@ async function loreMaster(data) {
             }
         });
         const r = await content.json();
-        return r.response;
+        return [r.response, VOICES.LORE_MASTER, UPDATER.LORE_MASTER];
     }
-    return '';
+    return ['', VOICES.LORE_MASTER, UPDATER.LORE_MASTER];
 }
 
 function updatePlayerCards(data) {
@@ -308,5 +322,5 @@ function updatePlayerCards(data) {
         }
     });
 
-    return '';
+    return ['', VOICES.UPDATE_PLAYER_CARDS, UPDATER.UPDATE_PLAYER_CARDS];
 }

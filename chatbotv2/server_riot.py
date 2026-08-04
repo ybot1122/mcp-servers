@@ -106,6 +106,13 @@ def get_new_items_live_api(newState):
     result = {}
     lastAllPlayers = GLOBAL_CACHE["last_live_state"].get("allPlayers")
     currAllPlayers = newState.get("allPlayers")
+
+    if lastAllPlayers is None:
+       return {}
+
+    if currAllPlayers is None:
+       return {}
+
     for index, player in enumerate(lastAllPlayers):
        championName = player.get("championName")
        prevItems = player.get("items")

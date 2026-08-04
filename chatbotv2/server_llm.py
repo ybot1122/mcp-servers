@@ -183,10 +183,18 @@ anthropic_model = 'claude-opus-5'
 @app.route('/league-game', methods=['GET'])
 def query_llm_league():
     current_game_state = request.args.get('text')
+    free = request.args.get('free')
     if not current_game_state:
         return jsonify({'error': 'Missing required query parameter "text"'}), 400
 
     instructions = 'You are an expert at League of Legends. Here is the state of my current ranked game. Answer in 5 sentences max.'
+
+    if free is not None:
+        return jsonify({
+            'query': current_game_state,
+            'response': 'Try your best!',
+            'model': 'free',
+        })
 
     # gemini
     try:
